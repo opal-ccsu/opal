@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PathwayU Unit: Discover Your Profile - Explore Your Matches</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#3B2D6B;--primary-lt:#5B4A9E;--primary-glow:rgba(59,45,107,0.08);
+  --gold:#D4A03C;--gold-lt:#F0D078;
+  --teal:#2A9D8F;--teal-lt:#3DBCAD;
+  --orange:#E8733A;--orange-lt:#F4A574;--orange-glow:rgba(232,115,58,0.10);
+  --navy:#1B1F4B;--navy-lt:#2D3170;
+  --bg:#F9F8F5;--border:#E5E2DC;--text:#2D2D2D;--muted:#5A6178;--white:#fff;
+  --r:8px;--rl:12px;--rxl:16px;
+  --sh:0 1px 3px rgba(59,45,107,.06);--shm:0 4px 12px rgba(59,45,107,.10);
+  --font:'Segoe UI',system-ui,-apple-system,sans-serif;
+  --ease:all 0.3s cubic-bezier(0.4,0,0.2,1)
+}
+.hidden{display:none}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:var(--font);font-size:1rem;line-height:1.7;color:var(--text);background:var(--bg);min-height:100vh}
+#app-wrapper{display:flex;min-height:100vh}
+#sidebar{width:220px;min-width:220px;background:var(--primary);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100}
+#module-shell{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.nav-header{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.nav-label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-lt);margin-bottom:4px}
+.nav-title{display:block;font-size:13px;font-weight:700;color:#fff;line-height:1.4}
+#sidebar ul{list-style:none;padding:8px 0;flex:1}
+.nav-link{display:block;padding:9px 16px;font-size:13px;color:rgba(255,255,255,.7);text-decoration:none;transition:all .2s;border-left:3px solid transparent;cursor:pointer}
+.nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:var(--gold)}
+.nav-divider{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.35);padding:14px 16px 4px}
+.nav-footer{padding:16px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.4);line-height:1.5}
+#module-header{background:var(--primary);color:#fff;padding:14px 32px;position:sticky;top:0;z-index:50;border-bottom:3px solid var(--gold)}
+#module-title{font-size:17px;font-weight:700;color:#fff;cursor:default;display:inline-block}
+#module-header .subtitle{font-size:13px;color:rgba(255,255,255,.65);margin-top:2px}
+#progress-container{margin-top:8px;display:flex;align-items:center;gap:12px}
+#progress-bar-track{flex:1;height:5px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden}
+#progress-bar{height:100%;background:var(--gold);border-radius:3px;transition:width .4s ease;width:0%}
+#progress-label{font-size:12px;color:rgba(255,255,255,.6);white-space:nowrap}
+#page-container{flex:1}
+.page{padding:32px 44px;max-width:800px;animation:fadeIn .3s ease}
+.page.hidden{display:none}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.section-header{margin-bottom:24px}
+.section-tag{display:inline-block;background:var(--orange);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;padding:4px 12px;border-radius:20px;margin-bottom:10px}
+.section-tag.teal{background:var(--teal)}
+.section-header h1{font-size:26px;color:var(--navy);font-weight:800;line-height:1.2}
+.section-header .subtitle{font-size:15px;color:var(--muted);margin-top:6px;font-style:italic}
+.time-estimate{font-size:13px;color:var(--muted);margin-top:4px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--rxl);padding:24px;margin-bottom:16px;box-shadow:var(--sh);transition:var(--ease)}
+.card:hover{box-shadow:var(--shm)}
+.card h3{font-size:17px;color:var(--navy);margin-bottom:10px}
+.card p{font-size:14px;margin-bottom:9px;line-height:1.6}
+.card p:last-child{margin-bottom:0}
+.overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.overview-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:18px;box-shadow:var(--sh)}
+.overview-card h3{font-size:14px;color:var(--navy);margin-bottom:6px}
+.overview-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+.learning-objectives{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:var(--rl);padding:20px 24px;margin:20px 0}
+.learning-objectives h2{font-size:15px;color:var(--navy);margin-bottom:12px}
+.learning-objectives ol{padding-left:20px}
+.learning-objectives li{font-size:14px;margin-bottom:8px;line-height:1.6}
+.key-message{background:linear-gradient(135deg,var(--navy),var(--navy-lt));color:#fff;border-radius:var(--rl);padding:18px 22px;margin-bottom:20px;font-size:15px;font-style:italic;line-height:1.6}
+.key-message p{margin:0}
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.result-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:18px;box-shadow:var(--sh)}
+.result-card h4{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--primary);margin-bottom:8px}
+.result-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+.sso-section{background:linear-gradient(135deg,var(--primary),var(--primary-lt));border-radius:var(--rxl);padding:30px;text-align:center;margin:24px 0;box-shadow:0 8px 24px rgba(59,45,107,.15)}
+.sso-section h3{color:#fff;font-size:19px;margin-bottom:10px}
+.sso-section p{color:rgba(255,255,255,.85);font-size:14px;margin-bottom:18px}
+.sso-button{display:inline-block;padding:14px 32px;background:#fff;color:var(--primary);text-decoration:none;border-radius:var(--rl);font-weight:700;font-size:15px;transition:var(--ease);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.sso-button:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.sso-note{margin-top:10px;font-size:12px;color:rgba(255,255,255,.6)}
+.step-list{list-style:none;padding:0;counter-reset:steps}
+.step-item{counter-increment:steps;display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border)}
+.step-item:last-child{border-bottom:none}
+.step-item::before{content:counter(steps);display:flex;align-items:center;justify-content:center;min-width:32px;height:32px;background:var(--primary-glow);color:var(--primary);border-radius:50%;font-weight:700;font-size:13px;flex-shrink:0}
+.step-content h4{font-size:14px;color:var(--navy);margin-bottom:3px}
+.step-content p{font-size:13px;color:var(--muted);margin:0}
+.step-time{display:inline-block;background:var(--bg);padding:2px 8px;border-radius:10px;font-size:11px;color:var(--muted);margin-top:4px}
+.example-header{display:flex;align-items:center;gap:11px;margin-bottom:18px;padding-bottom:11px;border-bottom:2px solid var(--gold)}
+.example-avatar{width:46px;height:46px;background:linear-gradient(135deg,var(--gold),#B8860B);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:17px;flex-shrink:0}
+.example-header-text h3{font-size:16px;color:var(--navy);margin-bottom:2px}
+.example-header-text p{font-size:12px;color:var(--muted);margin:0}
+.example-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E8);border:1px solid rgba(212,160,60,.25);border-radius:var(--rxl);padding:20px 24px;margin-bottom:14px;position:relative}
+.example-card::before{content:'\1F4A1';position:absolute;top:-11px;left:18px;background:#fff;padding:2px 5px;border-radius:7px;font-size:15px;box-shadow:var(--sh)}
+.example-card h4{font-size:13px;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px;margin-top:3px}
+.example-card p{font-size:14px;line-height:1.7;margin-bottom:7px}
+.example-card p:last-child{margin-bottom:0}
+.example-card blockquote{border-left:3px solid var(--gold);padding-left:14px;margin:12px 0;font-style:italic;color:#4A4A4A;font-size:14px}
+.result-tag{display:inline-block;padding:4px 11px;border-radius:14px;font-size:12px;font-weight:600}
+.result-tag.primary{background:var(--primary-glow);color:var(--primary);border:1px solid rgba(59,45,107,.2)}
+.result-tag.supporting{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.result-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+.match-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rxl);padding:20px;box-shadow:var(--sh);transition:var(--ease);position:relative;overflow:hidden;margin-bottom:10px}
+.match-card:hover{box-shadow:var(--shm);transform:translateY(-2px)}
+.match-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--primary),var(--teal))}
+.match-badge{display:inline-block;padding:3px 9px;background:rgba(42,157,143,.1);color:var(--teal);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:11px;margin-bottom:8px}
+.match-card h4{font-size:15px;color:var(--navy);margin-bottom:5px}
+.match-subject{font-size:12px;color:var(--muted);margin-bottom:6px}
+.match-description{font-size:13px;color:#4A4A4A;line-height:1.6;margin:0}
+.analysis-table{width:100%;border-collapse:collapse;font-size:13px;margin:14px 0}
+.analysis-table th{text-align:left;padding:10px 12px;background:var(--navy);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.analysis-table th:first-child{border-radius:var(--r) 0 0 0}
+.analysis-table th:last-child{border-radius:0 var(--r) 0 0}
+.analysis-table td{padding:12px;border-bottom:1px solid var(--border);vertical-align:top}
+.analysis-table td:first-child{font-weight:700;color:var(--navy);width:155px}
+.analysis-table tr:hover td{background:rgba(59,45,107,.02)}
+.tag-cell{display:flex;flex-wrap:wrap;gap:5px}
+.mini-tag{display:inline-block;padding:3px 9px;border-radius:11px;font-size:11px;font-weight:600}
+.mini-tag.ksa{background:rgba(27,31,75,.07);color:var(--navy)}
+.mini-tag.comp{background:var(--orange-glow);color:var(--orange)}
+.synthesis-card{background:linear-gradient(135deg,#F0F4FF,#E8EDFF);border:1px solid rgba(27,31,75,.1);border-radius:var(--rxl);padding:24px;margin:20px 0}
+.synthesis-card h4{font-size:15px;color:var(--navy);margin-bottom:10px}
+.synthesis-card p{font-size:14px;margin-bottom:9px;line-height:1.7}
+.synthesis-list{list-style:none;padding:0}
+.synthesis-list li{padding:9px 0 9px 22px;position:relative;border-bottom:1px solid rgba(27,31,75,.05);font-size:13px}
+.synthesis-list li:last-child{border-bottom:none}
+.synthesis-list li::before{content:'\2192';position:absolute;left:0;color:var(--primary);font-weight:700}
+.activity-box{background:var(--white);border:2px solid var(--orange);border-radius:var(--rl);padding:24px;margin:20px 0;box-shadow:var(--sh)}
+.activity-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.activity-icon{font-size:20px}
+.activity-header h3{font-size:16px;color:var(--navy);font-weight:700}
+.activity-purpose{font-size:13px;color:var(--muted);margin-bottom:14px;font-style:italic}
+.scorm-input,.scorm-input-short,.scorm-select{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r);font-family:inherit;font-size:15px;color:var(--text);background:var(--bg);transition:border-color .2s,box-shadow .2s;margin-top:5px;margin-bottom:10px}
+.scorm-input:focus,.scorm-input-short:focus,.scorm-select:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(232,115,58,.12)}
+textarea.scorm-input{resize:vertical}
+label{display:block;font-size:14px;font-weight:600;color:var(--navy);margin-top:14px}
+.form-group{margin-bottom:16px}
+.form-group label{margin-top:0}
+.info-callout{background:#EDE7F6;border-left:4px solid var(--primary);border-radius:0 var(--rl) var(--rl) 0;padding:14px 18px;margin:18px 0}
+.info-callout p{font-size:13px;color:#4A148C;margin:0}
+.warning-callout{background:#FFF3E0;border-left:4px solid var(--orange);border-radius:0 var(--rl) var(--rl) 0;padding:14px 18px;margin:18px 0}
+.warning-callout p{font-size:13px;color:#E65100;margin:0}
+.career-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--primary);color:#fff;border-radius:50%;font-size:12px;font-weight:700;margin-right:8px;flex-shrink:0}
+.nace-reminder{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:14px 18px;margin-bottom:16px}
+.nace-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.nace-tag-sm{display:inline-block;padding:4px 11px;background:var(--primary-glow);border-radius:12px;font-size:12px;font-weight:600;color:var(--primary);cursor:pointer;transition:all .2s;user-select:none}
+.nace-tag-sm:hover,.nace-tag-sm.active{background:var(--primary);color:#fff}
+.toggle-btn{background:none;border:1.5px solid var(--border);border-radius:20px;padding:7px 15px;font-size:13px;color:var(--navy);cursor:pointer;transition:all .2s;font-family:inherit;margin:8px 0}
+.toggle-btn:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
+.toggle-content{margin-top:8px}
+.toggle-content.hidden{display:none}
+.completion-card{background:linear-gradient(135deg,#E8F5E9,#F1F8E9);border:1px solid #A5D6A7;border-radius:var(--rl);padding:26px;text-align:center;margin-bottom:20px}
+.completion-card.final{background:linear-gradient(135deg,#EDE7F6,#F3E5F5);border-color:#CE93D8}
+.check-icon{font-size:36px;margin-bottom:10px}
+.completion-card h2{font-size:20px;color:var(--navy);margin-bottom:10px}
+.completion-card p{font-size:15px;margin-bottom:7px}
+.timer-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:24px;text-align:center;margin:20px 0}
+.timer-card h3{font-size:17px;color:var(--navy);margin-bottom:10px}
+.countdown-text{font-size:46px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;letter-spacing:4px;margin:6px 0}
+.timer-note{font-size:13px;color:var(--muted);margin-top:8px}
+.review-section{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:14px}
+.review-section h4{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--navy);margin-bottom:8px}
+.review-display{font-size:14px;white-space:pre-wrap;color:var(--text);background:var(--bg);padding:10px 12px;border-radius:var(--r);min-height:36px;line-height:1.6}
+.email-capture{background:var(--white);border:1.5px solid var(--border);border-radius:var(--rl);padding:22px;margin:20px 0}
+.email-capture h4{font-size:15px;color:var(--navy);margin-bottom:7px}
+.email-capture>p{font-size:14px;color:var(--muted);margin-bottom:12px}
+.email-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.email-field label{margin-top:0}
+.email-warning{font-size:12px;color:#e53935;margin-top:3px;display:none}
+.email-warning.visible{display:block}
+.required-star{color:#e53935;margin-left:2px}
+.cr-connector{background:linear-gradient(135deg,var(--navy),var(--navy-lt));border-radius:var(--rxl);padding:24px 26px;color:#fff;margin-bottom:16px}
+.cr-connector h3{font-size:14px;color:var(--gold-lt);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.cr-connector p{font-size:14px;opacity:.9;line-height:1.6;margin:0}
+.summary-stats{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-top:14px;font-size:14px}
+.summary-stats p{margin-bottom:5px}
+.forward-section{background:linear-gradient(135deg,var(--navy),var(--navy-lt));border-radius:var(--rxl);padding:26px;margin:22px 0;color:#fff}
+.forward-section h3{font-size:17px;margin-bottom:14px;color:var(--gold-lt)}
+.forward-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.forward-item{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--rl);padding:14px}
+.forward-item h4{font-size:12px;color:#F4A574;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.forward-item p{font-size:13px;color:rgba(255,255,255,.8);margin:0;line-height:1.5}
+.module-unlock{margin-top:20px;padding:14px 22px;background:linear-gradient(135deg,#E8F5E9,#F1F8E9);border:1px solid #A5D6A7;border-radius:var(--rl);display:inline-block}
+.module-unlock p{font-size:13px;color:#2E7D32;font-weight:600;margin:0}
+#nace-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:498}
+#nace-overlay.hidden{display:none}
+#nace-tooltip{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid var(--border);border-radius:var(--rl);box-shadow:0 8px 32px rgba(59,45,107,.18);padding:26px;max-width:420px;width:90%;z-index:499;animation:tipIn .2s ease;max-height:80vh;overflow-y:auto}
+#nace-tooltip.hidden{display:none}
+@keyframes tipIn{from{opacity:0;transform:translate(-50%,-47%)}to{opacity:1;transform:translate(-50%,-50%)}}
+.tip-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.tip-icon{font-size:26px}
+.tip-title{font-size:17px;color:var(--navy);font-weight:700}
+.tip-tagline{font-size:15px;font-weight:600;color:var(--orange);margin-bottom:10px}
+.tip-divider{border:none;border-top:1px solid var(--border);margin:10px 0}
+.tip-official{font-size:14px;color:var(--text);line-height:1.65;margin-bottom:8px}
+.tip-cite{font-size:11px;color:var(--muted);font-style:italic}
+#tip-close{position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1;padding:4px}
+#tip-close:hover{color:var(--navy)}
+#override-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center}
+#override-modal.hidden{display:none}
+.modal-content{background:#fff;border-radius:var(--rl);padding:30px;max-width:380px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,.2)}
+.modal-content>p:first-child{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:14px}
+.modal-content input{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r);font-size:15px;margin-bottom:11px;font-family:inherit}
+.modal-content input:focus{outline:none;border-color:var(--orange)}
+.modal-buttons{display:flex;gap:9px}
+.error-text{color:#e53935;font-size:13px}
+#nav-footer{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);padding:13px 44px;display:flex;align-items:center;gap:10px;box-shadow:0 -2px 8px rgba(27,31,75,.06);z-index:40}
+#nav-spacer{flex:1}
+.nav-btn{padding:9px 22px;border-radius:22px;font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--navy);font-family:inherit;transition:all .2s}
+.nav-btn:hover:not(:disabled){border-color:var(--navy);background:var(--navy);color:#fff}
+.nav-btn:disabled{opacity:.4;cursor:not-allowed}
+.nav-btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.nav-btn.primary:hover:not(:disabled){background:#D4612A;border-color:#D4612A}
+.nav-btn.submit{background:var(--navy);border-color:var(--navy);color:#fff}
+.nav-btn.submit:hover:not(:disabled){background:#0F1235}
+.nav-btn.hidden{display:none}
+.credit{text-align:center;margin-top:30px;font-size:11px;color:var(--muted)}
+@media(max-width:768px){
+  #sidebar{display:none}
+  #module-shell{margin-left:0}
+  .page{padding:20px 16px}
+  .overview-grid,.results-grid,.forward-grid,.email-row{grid-template-columns:1fr}
+  #nav-footer{padding:11px 16px}
+  .countdown-text{font-size:34px}
+  .analysis-table{font-size:11px}
+  .analysis-table td:first-child{width:100px}
+}
+</style>
+</head>
+<body>
+<div id="app-wrapper">
+
+<nav id="sidebar">
+  <div class="nav-header">
+    <span class="nav-label">PathwayU Unit</span>
+    <span class="nav-title">Discover Your Profile &#8212; Explore Your Matches</span>
+  </div>
+  <ul>
+    <li><a class="nav-link" onclick="goToPage(1);return false;" href="#">Overview</a></li>
+    <li class="nav-divider">Part A &#8212; Discover Your Profile</li>
+    <li><a class="nav-link" onclick="goToPage(2);return false;" href="#">Why PathwayU?</a></li>
+    <li><a class="nav-link" onclick="goToPage(3);return false;" href="#">Complete Assessments</a></li>
+    <li><a class="nav-link" onclick="goToPage(4);return false;" href="#">Worked Example</a></li>
+    <li><a class="nav-link" onclick="goToPage(5);return false;" href="#">Your Reflection</a></li>
+    <li class="nav-divider">Part B &#8212; Explore Your Matches</li>
+    <li><a class="nav-link" onclick="goToPage(8);return false;" href="#">Part B Overview</a></li>
+    <li><a class="nav-link" onclick="goToPage(9);return false;" href="#">Caleb's Example</a></li>
+    <li><a class="nav-link" onclick="goToPage(10);return false;" href="#">Career 1 Analysis</a></li>
+    <li><a class="nav-link" onclick="goToPage(11);return false;" href="#">Career 2 Analysis</a></li>
+    <li><a class="nav-link" onclick="goToPage(12);return false;" href="#">Career 3 Analysis</a></li>
+    <li><a class="nav-link" onclick="goToPage(13);return false;" href="#">Synthesis</a></li>
+    <li><a class="nav-link" onclick="goToPage(14);return false;" href="#">Connection Reflection</a></li>
+  </ul>
+  <div class="nav-footer">
+    <span>CR Path: Career Readiness Through Iteration</span>
+    <span style="margin-top:4px;font-size:10px;display:block">Bragg, C. B. (2026). CC BY-NC 4.0</span>
+  </div>
+</nav>
+
+<div id="module-shell">
+
+  <header id="module-header">
+    <h1 id="module-title">PathwayU Unit</h1>
+    <p class="subtitle">Discover Your Profile &#8212; Explore Your Matches</p>
+    <div id="progress-container">
+      <div id="progress-bar-track"><div id="progress-bar"></div></div>
+      <span id="progress-label">Page 1 of 16</span>
+    </div>
+  </header>
+
+  <div id="override-modal" class="hidden">
+    <div class="modal-content">
+      <p>Facilitator Override</p>
+      <input type="password" id="override-input" placeholder="Enter override code">
+      <div class="modal-buttons">
+        <button id="override-submit" class="nav-btn primary">Submit</button>
+        <button id="override-cancel" class="nav-btn">Cancel</button>
+      </div>
+      <p id="override-error" class="hidden error-text" style="margin-top:8px">Incorrect code.</p>
+    </div>
+  </div>
+
+  <div id="nace-overlay" class="hidden" onclick="closeNaceTooltip()"></div>
+  <div id="nace-tooltip" class="hidden" role="dialog" aria-modal="true">
+    <button id="tip-close" onclick="closeNaceTooltip()" aria-label="Close">&times;</button>
+    <div class="tip-header"><span class="tip-icon" id="tip-icon"></span><h4 class="tip-title" id="tip-title"></h4></div>
+    <p class="tip-tagline" id="tip-tagline"></p>
+    <hr class="tip-divider">
+    <p class="tip-official" id="tip-official"></p>
+    <p class="tip-cite">Source: NACE Career Readiness Competencies (Rev. April 2024)</p>
+  </div>
+
+  <main id="page-container">
+
+  <!-- PAGE 1: OVERVIEW -->
+  <div class="page" data-page="1">
+    <div class="section-header">
+      <span class="section-tag">PathwayU Unit</span>
+      <h1>Discover Your Profile &#8212; Explore Your Matches</h1>
+      <p class="subtitle">Self-knowledge is the starting point for intentional career development.</p>
+    </div>
+    <div class="overview-grid">
+      <div class="overview-card"><h3>Part A &#8212; 35-45 min</h3><p>Complete four assessments and review your results through a worked example. Available now.</p></div>
+      <div class="overview-card"><h3>Part B &#8212; 25-35 min</h3><p>Explore three career matches and analyze what they require. Unlocks 24 hours after you submit Part A.</p></div>
+      <div class="overview-card"><h3>What You'll Need</h3><p>Your CCSU SSO credentials for PathwayU. Everything else is completed right here.</p></div>
+      <div class="overview-card"><h3>What You'll Produce</h3><p>An Initial Reflection on your profile and a Career Match Analysis connecting three careers to your CR Path.</p></div>
+    </div>
+    <div class="learning-objectives">
+      <h2>By the end of this unit, you will be able to:</h2>
+      <ol>
+        <li><strong>Describe</strong> your interests, values, personality, and workplace preferences using PathwayU data</li>
+        <li><strong>Identify</strong> surprises, confirmations, and tensions in your own profile</li>
+        <li><strong>Select</strong> three career matches and analyze the CS KSAs and Core Competencies they require</li>
+        <li><strong>Synthesize</strong> patterns across your three matches to identify development priorities</li>
+        <li><strong>Connect</strong> your career analysis back to your CR Path self-assessment</li>
+      </ol>
+    </div>
+    <div class="info-callout"><p><strong>Note:</strong> Complete Part A first. Part B unlocks 24 hours after you submit &#8212; that spacing is intentional. Give yourself time to process before you analyze.</p></div>
+    <p class="credit">CR Path: Career Readiness Through Iteration. &copy; 2026 Caleb B. Bragg. CC BY-NC 4.0.</p>
+  </div>
+
+  <!-- PAGE 2: WHY PATHWAYU MATTERS -->
+  <div class="page hidden" data-page="2">
+    <div class="section-header">
+      <span class="section-tag">Part A &#8212; Section 1</span>
+      <h1>Why PathwayU Matters</h1>
+      <p class="time-estimate">3 minutes to read</p>
+    </div>
+    <div class="card">
+      <p>PathwayU measures four dimensions of who you are as a worker and a person. None of them tell you what to do &#8212; they tell you what is likely to <em>fit</em>.</p>
+      <div class="results-grid" style="margin-top:18px">
+        <div class="result-card"><h4>Interests</h4><p>What activities energize you? Based on Holland's RIASEC theory &#8212; the same model used by the Bureau of Labor Statistics to classify careers.</p></div>
+        <div class="result-card"><h4>Values</h4><p>What must a career have for you to find it fulfilling? Based on the Theory of Work Adjustment &#8212; decades of research on person-environment fit.</p></div>
+        <div class="result-card"><h4>Personality</h4><p>How do you typically think, feel, and act? Based on the HEXACO model &#8212; a well-supported framework of six core personality traits.</p></div>
+        <div class="result-card"><h4>Workplace Preferences</h4><p>What kind of organization will bring out your best? Based on the Organizational Culture Profile &#8212; matching your values to organizational culture.</p></div>
+      </div>
+    </div>
+    <div class="info-callout"><p><strong>Key idea:</strong> These are not grades. There are no good or bad results. They are a mirror &#8212; and the better you know yourself, the smarter you can walk the CR Path.</p></div>
+    <div class="cr-connector" style="margin-top:20px">
+      <h3>Where PathwayU Fits on the CR Path</h3>
+      <p style="margin-top:8px">The CR Path is a framework built on four components: Career-Specific Knowledge, Skills and Abilities (CS KSAs), Core Competencies, Experiential Learning Opportunities (ELOs), and Career Mentorship. PathwayU tells you <em>who you are</em> &#8212; and that self-knowledge sharpens every component, especially CS KSAs, by helping you understand which careers fit you and what they actually require.</p>
+      <p style="margin-top:10px;font-size:13px;opacity:.85"><strong>If you've already completed Module 0:</strong> PathwayU gives you richer, more specific data to bring back to your CR Path Map &#8212; especially the CS KSA and Career Mentorship rows. Plan to update your map after you finish this unit.</p>
+      <p style="margin-top:8px;font-size:13px;opacity:.85"><strong>If you're starting here:</strong> That's fine. This unit stands on its own. When you're done, Module 0 is the recommended next step &#8212; it gives you a framework to organize and continue building on everything you discover here.</p>
+    </div>
+  </div>
+
+  <!-- PAGE 3: COMPLETE ASSESSMENTS -->
+  <div class="page hidden" data-page="3">
+    <div class="section-header">
+      <span class="section-tag">Part A &#8212; Section 2</span>
+      <h1>Complete Your Assessments</h1>
+      <p class="time-estimate">30-40 minutes total</p>
+    </div>
+    <div class="card">
+      <h3>What You'll Complete</h3>
+      <ol class="step-list">
+        <li class="step-item"><div class="step-content"><h4>Interests Assessment</h4><p>Identifies your Holland code &#8212; the types of activities and environments you're drawn to.</p><span class="step-time">~8 minutes</span></div></li>
+        <li class="step-item"><div class="step-content"><h4>Values Assessment</h4><p>Identifies what a career must have to feel meaningful and worth your effort.</p><span class="step-time">~8 minutes</span></div></li>
+        <li class="step-item"><div class="step-content"><h4>Personality Assessment</h4><p>Maps your consistent traits &#8212; how you naturally approach work, people, and problems.</p><span class="step-time">~10 minutes</span></div></li>
+        <li class="step-item"><div class="step-content"><h4>Workplace Preferences Assessment</h4><p>Identifies the organizational culture where you'll thrive &#8212; not just survive.</p><span class="step-time">~8 minutes</span></div></li>
+      </ol>
+    </div>
+    <div class="sso-section">
+      <h3>Log In and Complete All Four Assessments</h3>
+      <p>Use your CCSU SSO credentials. Complete all four assessments in one sitting if possible &#8212; they flow naturally from one to the next.</p>
+      <a href="https://launcher.myapps.microsoft.com/api/signin/365947ad-e8a1-4725-9063-21ae5f0edbb3?tenantId=2329c570-b580-4223-803b-427d800e81b6" class="sso-button" target="_blank">Open PathwayU (CCSU SSO) &rarr;</a>
+      <p class="sso-note">Opens in a new tab. Come back here when you've finished all four.</p>
+    </div>
+    <div class="info-callout"><p><strong>Answer honestly, not aspirationally.</strong> These assessments work best when you respond based on who you actually are &#8212; not who you think you should be. There are no right answers.</p></div>
+  </div>
+
+  <!-- PAGE 4: CALEB'S WORKED EXAMPLE -->
+  <div class="page hidden" data-page="4">
+    <div class="section-header">
+      <span class="section-tag">Part A &#8212; Section 3</span>
+      <h1>Review Your Results &#8212; Worked Example</h1>
+      <p class="time-estimate">~10 minutes to read</p>
+    </div>
+    <div class="card"><p>Once you've completed all four assessments, PathwayU generates your profile. Before you reflect on yours, here's a model &#8212; not because your results should look like mine, but to show you <em>how to think about them</em> through the CR Path lens.</p></div>
+    <div class="example-header">
+      <div class="example-avatar">CB</div>
+      <div class="example-header-text"><h3>Caleb's PathwayU Results</h3><p>Author of the CR Path &#183; Department of Psychological Science, CCSU</p></div>
+    </div>
+    <div class="example-card">
+      <h4>My Interests</h4>
+      <div class="result-tags"><span class="result-tag primary">Investigative</span><span class="result-tag primary">Social</span><span class="result-tag supporting">Enterprising</span></div>
+      <blockquote>"I thrive when exploring ideas, asking intellectual questions, and seeking answers. I enjoy math, science, and research, and appreciate having independence. I also thrive in roles that directly help people."</blockquote>
+      <p><strong>What I notice:</strong> Investigative + Social is the classic researcher-teacher combination. The Enterprising supporting interest explains why I'm drawn to building programs and persuading stakeholders &#8212; not just studying things quietly in a lab.</p>
+    </div>
+    <div class="example-card">
+      <h4>My Values</h4>
+      <div class="result-tags"><span class="result-tag primary">Independence</span><span class="result-tag primary">Achievement</span></div>
+      <blockquote>"I need to do my work on my own and use creativity in the workplace. I need the chance to make my own decisions. I need to feel a sense of accomplishment from my work."</blockquote>
+      <p><strong>What I notice:</strong> Independence + Achievement tells me I need autonomy and meaningful work. A micromanaged job with no visible impact would drain me, no matter how well it paid.</p>
+    </div>
+    <div class="example-card">
+      <h4>My Personality</h4>
+      <div class="result-tags"><span class="result-tag primary">High Conscientiousness</span><span class="result-tag primary">High Emotional Stability</span><span class="result-tag primary">High Honesty/Humility</span><span class="result-tag supporting">Mod-High Openness</span><span class="result-tag supporting">Mod-High Extraversion</span></div>
+      <p><strong>What I notice:</strong> High Conscientiousness means I can build systems and finish what I start. The tension: I'm moderately high on both Extraversion (I like working with people) and Independence (I need autonomy). Teaching + research gives me both.</p>
+    </div>
+    <div class="example-card">
+      <h4>My Workplace Preferences</h4>
+      <div class="result-tags"><span class="result-tag primary">Recognition</span><span class="result-tag primary">Stability</span></div>
+      <p><strong>What I notice:</strong> Recognition means I want to know my work is valued. Stability means I don't want to wonder if my job will exist next year. Together these explain why I'm in higher education in a role where my contributions are visible.</p>
+    </div>
+    <div class="example-card" style="background:linear-gradient(135deg,#F0F4FF,#E8EDFF);border-color:rgba(27,31,75,.15)">
+      <h4 style="color:var(--navy)">How This Connects to My CR Path</h4>
+      <ul style="padding-left:18px;margin:10px 0">
+        <li style="margin-bottom:7px"><strong>CS KSAs to prioritize:</strong> Research methods, data analysis, curriculum design, program evaluation</li>
+        <li style="margin-bottom:7px"><strong>Core Competencies that matter most:</strong> Communication (Social interest), Critical Thinking (Investigative), Leadership (Enterprising)</li>
+        <li style="margin-bottom:7px"><strong>ELOs that would fit:</strong> Research assistantships, teaching practicums, program development roles</li>
+        <li><strong>Career Mentorship I'd need:</strong> Someone who has built something &#8212; a program, a lab, a framework &#8212; and can show me what it looks like 10 years further down the path</li>
+      </ul>
+      <p style="margin-top:10px"><strong>The profile doesn't tell me WHAT to do. It tells me what to pay attention to as I walk the CR Path.</strong></p>
+    </div>
+  </div>
+
+  <!-- PAGE 5: INITIAL REFLECTION -->
+  <div class="page hidden" data-page="5">
+    <div class="section-header">
+      <span class="section-tag">Part A &#8212; Activity</span>
+      <h1>Your Initial Reflection</h1>
+      <p class="time-estimate">~10 minutes</p>
+    </div>
+    <div class="activity-box">
+      <div class="activity-header"><span class="activity-icon">&#129695;</span><h3>PathwayU Initial Reflection</h3></div>
+      <p class="activity-purpose"><em>Look at YOUR PathwayU results and respond to the four prompts below. Use Caleb's example as a model for the kind of thinking we're looking for &#8212; not a template to copy. Write 2-4 sentences per prompt.</em></p>
+      <div class="form-group">
+        <label for="r-surprised">1. What surprised you? Was there anything in your results you didn't expect?</label>
+        <textarea id="r-surprised" class="scorm-input" data-interaction="0" rows="4" placeholder="Describe what surprised you and why it caught you off guard..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="r-confirmed">2. What confirmed something you already knew? Which results felt like "yes, that's me"?</label>
+        <textarea id="r-confirmed" class="scorm-input" data-interaction="1" rows="4" placeholder="Describe what felt like a confirmation and why it resonated..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="r-tension">3. Where do you see tension? Are any of your results in productive conflict with each other?</label>
+        <textarea id="r-tension" class="scorm-input" data-interaction="2" rows="4" placeholder="For example: a value that conflicts with a personality trait, or two interests that pull in different directions..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="r-crpath">4. How might this connect to your CR Path? Based on what you see, what kinds of CS KSAs, ELOs, or Career Mentorship might fit you well?</label>
+        <textarea id="r-crpath" class="scorm-input" data-interaction="3" rows="4" placeholder="Connect at least one result to a specific CR Path component..."></textarea>
+      </div>
+    </div>
+    <div class="warning-callout"><p>Make sure you've completed all four PathwayU assessments before writing your reflection. Your responses should be based on your actual results.</p></div>
+  </div>
+
+  <!-- PAGE 6: PART A REVIEW -->
+  <div class="page hidden" data-page="6">
+    <div class="section-header">
+      <span class="section-tag">Part A &#8212; Review</span>
+      <h1>Review Before Submitting Part A</h1>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:20px">Review your reflection below. Use the Back button to edit any response.</p>
+    <div class="review-section"><h4>What surprised you</h4><div class="review-display" id="review-surprised"></div></div>
+    <div class="review-section"><h4>What confirmed something you knew</h4><div class="review-display" id="review-confirmed"></div></div>
+    <div class="review-section"><h4>Where you see tension</h4><div class="review-display" id="review-tension"></div></div>
+    <div class="review-section"><h4>How it connects to your CR Path</h4><div class="review-display" id="review-crpath"></div></div>
+    <div class="info-callout" style="margin-top:20px"><p>When you're satisfied with your responses, click <strong>Submit Part A</strong>. The 24-hour timer starts when you submit.</p></div>
+  </div>
+
+  <!-- PAGE 7: TIMER GATE -->
+  <div class="page hidden" data-page="7">
+    <div class="section-header">
+      <span class="section-tag">Part A Complete</span>
+      <h1>Part A Complete &#8212; Take a Break</h1>
+    </div>
+    <div class="completion-card">
+      <div class="check-icon">&#9989;</div>
+      <h2>Part A Submitted</h2>
+      <p>You've completed your assessments and written your initial reflection.</p>
+      <p><strong>Give yourself at least 24 hours before starting Part B.</strong></p>
+    </div>
+    <div id="timer-display" class="timer-card">
+      <div id="timer-locked" class="hidden">
+        <h3>Part B unlocks in:</h3>
+        <p id="countdown" class="countdown-text">--:--:--</p>
+        <p class="timer-note">You can close this window and return anytime after the timer expires. Your responses are saved automatically.</p>
+        <p id="timer-close-msg" class="timer-note hidden">Your session has been saved. You can safely close this window now.</p>
+      </div>
+      <div id="timer-unlocked" class="hidden">
+        <h3>Part B is ready!</h3>
+        <p>Click Next to begin exploring your career matches.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Why the Wait?</h3>
+      <p>In Part A, you completed four assessments and made sense of your profile. In Part B, you'll point that self-knowledge at specific careers and ask: "What would I need to build to get there?" That's a different cognitive task &#8212; it works better with space between the two.</p>
+      <p style="font-size:13px;color:var(--muted);font-style:italic;margin-top:6px">Processing time isn't wasted time. It's when your brain makes connections you couldn't force.</p>
+    </div>
+  </div>
+
+  <!-- PAGE 8: PART B INTRO -->
+  <div class="page hidden" data-page="8">
+    <div class="section-header">
+      <span class="section-tag teal">Part B &#8212; Overview</span>
+      <h1>Explore Your Matches</h1>
+      <p class="subtitle">Pick three careers. Analyze what they require. Connect it to your CR Path.</p>
+    </div>
+    <div class="cr-connector">
+      <h3>Where This Fits on the CR Path</h3>
+      <p style="margin-top:8px">In Part A, you learned about yourself &#8212; your interests, values, personality, and workplace preferences. Now you'll point that self-knowledge at <strong>specific careers</strong> and ask: "What would I need to build to get there?" That question is the bridge between knowing yourself and walking the CR Path with purpose.</p>
+    </div>
+    <div style="text-align:center;margin:16px 0">
+      <img src="images/cr-path-compact.png" alt="CR Path compact diagram" style="width:100%;max-width:380px;height:auto;opacity:.9">
+    </div>
+    <div class="card">
+      <h3>What You'll Do in Part B</h3>
+      <ol style="padding-left:18px;margin:10px 0">
+        <li style="margin-bottom:8px"><strong>Browse your Career Matches page</strong> in PathwayU and select 3 careers that interest you</li>
+        <li style="margin-bottom:8px"><strong>Study Caleb's worked example</strong> &#8212; the Career Match Analysis table and synthesis</li>
+        <li style="margin-bottom:8px"><strong>Complete your own analysis</strong> for each of your 3 careers (Pages 10, 11, 12)</li>
+        <li style="margin-bottom:8px"><strong>Write a synthesis</strong> identifying patterns across your three matches (Page 13)</li>
+        <li><strong>Write a connection reflection</strong> linking back to your CR Path self-assessment (Page 14)</li>
+      </ol>
+    </div>
+    <div class="overview-grid">
+      <div class="overview-card"><h3>Time</h3><p>25-35 minutes</p></div>
+      <div class="overview-card"><h3>Goal</h3><p>Translate career requirements into CR Path language</p></div>
+      <div class="overview-card"><h3>You'll identify</h3><p>CS KSAs, Core Competencies, ELOs, and mentor types for 3 careers</p></div>
+      <div class="overview-card"><h3>You'll produce</h3><p>A pattern analysis connecting your matches to development priorities</p></div>
+    </div>
+  </div>
+
+  <!-- PAGE 9: TASK + CALEB'S EXAMPLE -->
+  <div class="page hidden" data-page="9">
+    <div class="section-header">
+      <span class="section-tag teal">Part B &#8212; Sections 4 and 5</span>
+      <h1>Your Task and a Worked Example</h1>
+      <p class="time-estimate">~15 minutes to read and select your three careers</p>
+    </div>
+    <div class="card">
+      <h3>Your Task: Pick 3 Careers</h3>
+      <p>Browse your Career Matches page in PathwayU and <strong>select 3 careers</strong> that interest you. Use the "Favorite" button in PathwayU to save them.</p>
+      <p><strong>Selection criteria &#8212; pick careers that are:</strong></p>
+      <ul style="padding-left:18px;margin:10px 0">
+        <li style="margin-bottom:5px">Interesting to you &#8212; even if you're not sure why</li>
+        <li style="margin-bottom:5px">At least "Good" match strength (stronger is fine too)</li>
+        <li style="margin-bottom:5px">Ideally from at least 2 different subject areas &#8212; so you see range</li>
+      </ul>
+      <div class="warning-callout" style="margin-top:10px"><p><strong>If none of your matches feel right:</strong> That's OK. Pick 3 that seem closest, most interesting, or most surprising. This is exploration, not commitment.</p></div>
+    </div>
+    <div class="info-callout"><p><strong>Pro tip:</strong> Use the filters on your Career Matches page. Try filtering by Education Level, Subject Area, or Industry. Don't just pick the first three &#8212; scroll, explore, click into the descriptions.</p></div>
+    <div style="margin-top:28px">
+      <div class="example-header">
+        <div class="example-avatar">CB</div>
+        <div class="example-header-text"><h3>Caleb's Career Match Analysis</h3><p>Modeling the thinking process &#8212; not the "right" answers</p></div>
+      </div>
+      <div class="card" style="margin-bottom:16px"><p><strong>Why I picked these three:</strong> I favorited Industrial-Organizational Psychologist, Psychology Teacher (Postsecondary), and Business Teacher (Postsecondary). All three are "Very Strong" matches. They span two subject areas and represent both the practitioner and the academic pathways within my field.</p></div>
+      <div class="match-card"><span class="match-badge">Very Strong Match</span><h4>Industrial-Organizational Psychologist</h4><p class="match-subject">Subject Area: Human Services</p><p class="match-description">Apply principles of psychology to human resources, administration, management, sales, and marketing problems. May include policy planning, employee testing and selection, training and development, and organizational development.</p></div>
+      <div class="match-card"><span class="match-badge">Very Strong Match</span><h4>Psychology Teacher, Postsecondary</h4><p class="match-subject">Subject Area: Education</p><p class="match-description">Teach courses in psychology, such as child, clinical, and developmental psychology, and psychological counseling. Includes those primarily engaged in teaching and those who combine teaching and research.</p></div>
+      <div class="match-card"><span class="match-badge">Very Strong Match</span><h4>Business Teacher, Postsecondary</h4><p class="match-subject">Subject Area: Education</p><p class="match-description">Teach courses in business administration and management, such as accounting, finance, human resources, labor relations, marketing, and operations research.</p></div>
+      <table class="analysis-table" style="margin-top:20px">
+        <thead><tr><th>Career</th><th>CS KSAs Required</th><th>Core Competencies Required</th></tr></thead>
+        <tbody>
+          <tr><td>I/O Psychologist</td><td><div class="tag-cell"><span class="mini-tag ksa">Research Methods</span><span class="mini-tag ksa">Statistics</span><span class="mini-tag ksa">Psychometrics</span><span class="mini-tag ksa">Org Behavior</span></div></td><td><div class="tag-cell"><span class="mini-tag comp">Communication</span><span class="mini-tag comp">Critical Thinking</span><span class="mini-tag comp">Leadership</span></div></td></tr>
+          <tr><td>Psychology Teacher</td><td><div class="tag-cell"><span class="mini-tag ksa">Psychology Content</span><span class="mini-tag ksa">Pedagogy</span><span class="mini-tag ksa">Research Methods</span><span class="mini-tag ksa">Assessment Design</span></div></td><td><div class="tag-cell"><span class="mini-tag comp">Communication</span><span class="mini-tag comp">Critical Thinking</span><span class="mini-tag comp">Equity &amp; Inclusion</span></div></td></tr>
+          <tr><td>Business Teacher</td><td><div class="tag-cell"><span class="mini-tag ksa">Business Theory</span><span class="mini-tag ksa">Pedagogy</span><span class="mini-tag ksa">Research Methods</span><span class="mini-tag ksa">Industry Knowledge</span></div></td><td><div class="tag-cell"><span class="mini-tag comp">Communication</span><span class="mini-tag comp">Critical Thinking</span><span class="mini-tag comp">Professionalism</span></div></td></tr>
+        </tbody>
+      </table>
+      <div class="synthesis-card">
+        <h4>What Caleb Noticed Across All Three</h4>
+        <ul class="synthesis-list">
+          <li><strong>Research Methods appears in all three.</strong> Non-negotiable &#8212; needs to be built deeply, not just passed.</li>
+          <li><strong>Communication and Critical Thinking appear in every column.</strong> Need to become excellent, not just adequate.</li>
+          <li><strong>Pedagogy appears in two of three.</strong> If teaching is on my path, I need deliberate ELO practice in instructional settings.</li>
+          <li><strong>I/O requires organizational knowledge the teaching matches don't.</strong> Different ELO pathways for consulting/industry vs. academia.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 10: CAREER 1 ANALYSIS -->
+  <div class="page hidden" data-page="10">
+    <div class="section-header">
+      <span class="section-tag teal">Part B &#8212; Section 6</span>
+      <h1>Your Career Match Analysis</h1>
+      <p class="subtitle">Career 1 of 3</p>
+    </div>
+    <button class="toggle-btn" onclick="toggleContent('nace-r1')">&#128203; Reminder: The 8 NACE Core Competencies &#8212; click any to learn more</button>
+    <div id="nace-r1" class="toggle-content hidden">
+      <div class="nace-reminder">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Click any competency for its definition:</p>
+        <div class="nace-tags">
+          <span class="nace-tag-sm" data-key="career_dev" tabindex="0">Career &amp; Self-Development</span>
+          <span class="nace-tag-sm" data-key="communication" tabindex="0">Communication</span>
+          <span class="nace-tag-sm" data-key="critical_thinking" tabindex="0">Critical Thinking</span>
+          <span class="nace-tag-sm" data-key="equity" tabindex="0">Equity &amp; Inclusion</span>
+          <span class="nace-tag-sm" data-key="leadership" tabindex="0">Leadership</span>
+          <span class="nace-tag-sm" data-key="professionalism" tabindex="0">Professionalism</span>
+          <span class="nace-tag-sm" data-key="teamwork" tabindex="0">Teamwork</span>
+          <span class="nace-tag-sm" data-key="technology" tabindex="0">Technology</span>
+        </div>
+      </div>
+    </div>
+    <div class="activity-box" style="margin-top:16px">
+      <div class="activity-header"><span class="activity-icon">&#128269;</span><h3><span class="career-num">1</span>First Career Match</h3></div>
+      <p class="activity-purpose"><em>If you're unsure whether something is a CS KSA or a Core Competency: field-specific = CS KSA; travels everywhere = Core Competency.</em></p>
+      <div class="form-group"><label for="c1-name">Career Title:</label><input type="text" id="c1-name" class="scorm-input-short" data-interaction="4" placeholder="e.g., Industrial-Organizational Psychologist"></div>
+      <div class="form-group"><label for="c1-strength">Match Strength:</label><select id="c1-strength" class="scorm-select" data-interaction="5"><option value="">Select match strength...</option><option value="Very Strong">Very Strong</option><option value="Strong">Strong</option><option value="Good">Good</option><option value="Fair">Fair</option></select></div>
+      <div class="form-group"><label for="c1-why">Why did you pick this career? What interests or intrigues you? (1-2 sentences)</label><textarea id="c1-why" class="scorm-input" data-interaction="6" rows="3" placeholder="What drew you to this career?"></textarea></div>
+      <div class="form-group"><label for="c1-ksas">Identify 3-5 CS KSAs this career would require:</label><textarea id="c1-ksas" class="scorm-input" data-interaction="7" rows="3" placeholder="e.g., Research Methods, Data Analysis, Client Communication..."></textarea></div>
+      <div class="form-group"><label for="c1-comps">Identify 3-5 Core Competencies (from the NACE 8) this career would require:</label><textarea id="c1-comps" class="scorm-input" data-interaction="8" rows="3" placeholder="e.g., Communication, Critical Thinking, Leadership..."></textarea></div>
+      <div class="form-group"><label for="c1-elo">Name one ELO that could help you explore or prepare for this career:</label><textarea id="c1-elo" class="scorm-input" data-interaction="9" rows="2" placeholder="e.g., A research assistantship in an organizational setting..."></textarea></div>
+      <div class="form-group"><label for="c1-mentor">Name one type of Career Mentor who could help you understand this path:</label><textarea id="c1-mentor" class="scorm-input" data-interaction="10" rows="2" placeholder="e.g., A licensed I/O psychologist currently working in consulting..."></textarea></div>
+    </div>
+  </div>
+
+  <!-- PAGE 11: CAREER 2 ANALYSIS -->
+  <div class="page hidden" data-page="11">
+    <div class="section-header">
+      <span class="section-tag teal">Part B &#8212; Section 6</span>
+      <h1>Your Career Match Analysis</h1>
+      <p class="subtitle">Career 2 of 3</p>
+    </div>
+    <button class="toggle-btn" onclick="toggleContent('nace-r2')">&#128203; Reminder: The 8 NACE Core Competencies &#8212; click any to learn more</button>
+    <div id="nace-r2" class="toggle-content hidden">
+      <div class="nace-reminder">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Click any competency for its definition:</p>
+        <div class="nace-tags">
+          <span class="nace-tag-sm" data-key="career_dev" tabindex="0">Career &amp; Self-Development</span>
+          <span class="nace-tag-sm" data-key="communication" tabindex="0">Communication</span>
+          <span class="nace-tag-sm" data-key="critical_thinking" tabindex="0">Critical Thinking</span>
+          <span class="nace-tag-sm" data-key="equity" tabindex="0">Equity &amp; Inclusion</span>
+          <span class="nace-tag-sm" data-key="leadership" tabindex="0">Leadership</span>
+          <span class="nace-tag-sm" data-key="professionalism" tabindex="0">Professionalism</span>
+          <span class="nace-tag-sm" data-key="teamwork" tabindex="0">Teamwork</span>
+          <span class="nace-tag-sm" data-key="technology" tabindex="0">Technology</span>
+        </div>
+      </div>
+    </div>
+    <div class="activity-box" style="margin-top:16px">
+      <div class="activity-header"><span class="activity-icon">&#128269;</span><h3><span class="career-num">2</span>Second Career Match</h3></div>
+      <p class="activity-purpose"><em>Aim for a career from a different subject area than Career 1 if possible.</em></p>
+      <div class="form-group"><label for="c2-name">Career Title:</label><input type="text" id="c2-name" class="scorm-input-short" data-interaction="11" placeholder="e.g., Psychology Teacher, Postsecondary"></div>
+      <div class="form-group"><label for="c2-strength">Match Strength:</label><select id="c2-strength" class="scorm-select" data-interaction="12"><option value="">Select match strength...</option><option value="Very Strong">Very Strong</option><option value="Strong">Strong</option><option value="Good">Good</option><option value="Fair">Fair</option></select></div>
+      <div class="form-group"><label for="c2-why">Why did you pick this career? (1-2 sentences)</label><textarea id="c2-why" class="scorm-input" data-interaction="13" rows="3" placeholder="What drew you to this career?"></textarea></div>
+      <div class="form-group"><label for="c2-ksas">Identify 3-5 CS KSAs this career would require:</label><textarea id="c2-ksas" class="scorm-input" data-interaction="14" rows="3" placeholder="e.g., Pedagogy, Instructional Design, Content Knowledge..."></textarea></div>
+      <div class="form-group"><label for="c2-comps">Identify 3-5 Core Competencies (from the NACE 8) this career would require:</label><textarea id="c2-comps" class="scorm-input" data-interaction="15" rows="3" placeholder="e.g., Communication, Equity and Inclusion, Critical Thinking..."></textarea></div>
+      <div class="form-group"><label for="c2-elo">Name one ELO that could help you explore or prepare for this career:</label><textarea id="c2-elo" class="scorm-input" data-interaction="16" rows="2" placeholder="What real-world experience would help you explore this path?"></textarea></div>
+      <div class="form-group"><label for="c2-mentor">Name one type of Career Mentor who could help you understand this path:</label><textarea id="c2-mentor" class="scorm-input" data-interaction="17" rows="2" placeholder="Who would be a good person to talk to about this career?"></textarea></div>
+    </div>
+  </div>
+
+  <!-- PAGE 12: CAREER 3 ANALYSIS -->
+  <div class="page hidden" data-page="12">
+    <div class="section-header">
+      <span class="section-tag teal">Part B &#8212; Section 6</span>
+      <h1>Your Career Match Analysis</h1>
+      <p class="subtitle">Career 3 of 3</p>
+    </div>
+    <button class="toggle-btn" onclick="toggleContent('nace-r3')">&#128203; Reminder: The 8 NACE Core Competencies &#8212; click any to learn more</button>
+    <div id="nace-r3" class="toggle-content hidden">
+      <div class="nace-reminder">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Click any competency for its definition:</p>
+        <div class="nace-tags">
+          <span class="nace-tag-sm" data-key="career_dev" tabindex="0">Career &amp; Self-Development</span>
+          <span class="nace-tag-sm" data-key="communication" tabindex="0">Communication</span>
+          <span class="nace-tag-sm" data-key="critical_thinking" tabindex="0">Critical Thinking</span>
+          <span class="nace-tag-sm" data-key="equity" tabindex="0">Equity &amp; Inclusion</span>
+          <span class="nace-tag-sm" data-key="leadership" tabindex="0">Leadership</span>
+          <span class="nace-tag-sm" data-key="professionalism" tabindex="0">Professionalism</span>
+          <span class="nace-tag-sm" data-key="teamwork" tabindex="0">Teamwork</span>
+          <span class="nace-tag-sm" data-key="technology" tabindex="0">Technology</span>
+        </div>
+      </div>
+    </div>
+    <div class="activity-box" style="margin-top:16px">
+      <div class="activity-header"><span class="activity-icon">&#128269;</span><h3><span class="career-num">3</span>Third Career Match</h3></div>
+      <p class="activity-purpose"><em>You're practicing the skill of reading a career description and translating it into CR Path language. If you're unsure &#8212; take your best shot.</em></p>
+      <div class="form-group"><label for="c3-name">Career Title:</label><input type="text" id="c3-name" class="scorm-input-short" data-interaction="18" placeholder="e.g., Business Teacher, Postsecondary"></div>
+      <div class="form-group"><label for="c3-strength">Match Strength:</label><select id="c3-strength" class="scorm-select" data-interaction="19"><option value="">Select match strength...</option><option value="Very Strong">Very Strong</option><option value="Strong">Strong</option><option value="Good">Good</option><option value="Fair">Fair</option></select></div>
+      <div class="form-group"><label for="c3-why">Why did you pick this career? (1-2 sentences)</label><textarea id="c3-why" class="scorm-input" data-interaction="20" rows="3" placeholder="What drew you to this career?"></textarea></div>
+      <div class="form-group"><label for="c3-ksas">Identify 3-5 CS KSAs this career would require:</label><textarea id="c3-ksas" class="scorm-input" data-interaction="21" rows="3" placeholder="What field-specific knowledge would this career require?"></textarea></div>
+      <div class="form-group"><label for="c3-comps">Identify 3-5 Core Competencies (from the NACE 8) this career would require:</label><textarea id="c3-comps" class="scorm-input" data-interaction="22" rows="3" placeholder="Which of the NACE 8 are most critical for this career?"></textarea></div>
+      <div class="form-group"><label for="c3-elo">Name one ELO that could help you explore or prepare for this career:</label><textarea id="c3-elo" class="scorm-input" data-interaction="23" rows="2" placeholder="What real-world experience would help you explore this path?"></textarea></div>
+      <div class="form-group"><label for="c3-mentor">Name one type of Career Mentor who could help you understand this path:</label><textarea id="c3-mentor" class="scorm-input" data-interaction="24" rows="2" placeholder="Who would be a good person to talk to about this career?"></textarea></div>
+    </div>
+  </div>
+
+  <!-- PAGE 13: SYNTHESIS -->
+  <div class="page hidden" data-page="13">
+    <div class="section-header">
+      <span class="section-tag teal">Part B &#8212; Synthesis</span>
+      <h1>Synthesize Your Three Matches</h1>
+      <p class="time-estimate">~8 minutes</p>
+    </div>
+    <div class="synthesis-card" style="margin-bottom:20px">
+      <h4>Caleb's Synthesis as a Model</h4>
+      <ul class="synthesis-list">
+        <li>Research Methods appears in all three &#8212; a non-negotiable CS KSA to build deeply</li>
+        <li>Communication and Critical Thinking appear in every competency column &#8212; need to become excellent, not just adequate</li>
+        <li>Pedagogy appears in two of three &#8212; signals a specific ELO direction if teaching is on the path</li>
+        <li>I/O requires organizational knowledge the teaching matches don't &#8212; different ELO pathways for different trajectories</li>
+      </ul>
+    </div>
+    <div class="activity-box">
+      <div class="activity-header"><span class="activity-icon">&#128257;</span><h3>Your Synthesis</h3></div>
+      <p class="activity-purpose"><em>Look across all three of your career matches and identify the patterns.</em></p>
+      <label for="r-synthesis">Looking across all three matches &#8212; what CS KSAs or Core Competencies appear in more than one? What does that tell you about what to prioritize on your CR Path?</label>
+      <textarea id="r-synthesis" class="scorm-input" data-interaction="25" rows="7" placeholder="Identify at least 2 patterns across your three matches. What do they tell you about your development priorities?"></textarea>
+    </div>
+    <div class="warning-callout"><p><strong>No patterns yet?</strong> Go back to pages 10-12 and look at what you wrote for CS KSAs and Core Competencies across all three careers. What words or themes appear more than once? Those are your patterns.</p></div>
+  </div>
+
+  <!-- PAGE 14: CONNECTION REFLECTION -->
+  <div class="page hidden" data-page="14">
+    <div class="section-header">
+      <span class="section-tag teal">Part B &#8212; Section 7</span>
+      <h1>Connecting Back and Forward</h1>
+      <p class="time-estimate">~8 minutes</p>
+    </div>
+    <div class="card">
+      <h3>Back to Your CR Path: What's Changed?</h3>
+      <p>In Module 0 &#8212; or in your own self-assessment if you came to PathwayU first &#8212; you identified your strongest and least-developed CR Path components. Now that you've analyzed three career matches, look at those rankings again:</p>
+      <ul style="padding-left:18px;margin:10px 0">
+        <li style="margin-bottom:7px"><strong>Did your least-developed component show up in your career analysis?</strong> If so &#8212; that's now a priority, not just a gap.</li>
+        <li style="margin-bottom:7px"><strong>Did your strongest component match what your careers require?</strong> If not &#8212; you may need to diversify.</li>
+        <li><strong>Are there CS KSAs you haven't started building yet?</strong> Those are signals for courses, ELOs, and mentor questions.</li>
+      </ul>
+    </div>
+    <div class="activity-box">
+      <div class="activity-header"><span class="activity-icon">&#128279;</span><h3>Connection Reflection</h3></div>
+      <p class="activity-purpose"><em>Connect your career match analysis back to your CR Path self-assessment &#8212; whether from Module 0 or your own prior thinking.</em></p>
+      <label for="r-connection">Looking at your career match analysis alongside your CR Path self-assessment &#8212; what do you notice? What's confirmed, what's new, and what do you want to prioritize as you move forward on your CR Path?</label>
+      <textarea id="r-connection" class="scorm-input" data-interaction="26" rows="7" placeholder="Write 100-200 words. Reference at least one specific thing from your CR Path self-assessment and at least one specific thing from your career analysis..."></textarea>
+    </div>
+    <div class="forward-section">
+      <h3>What to Do With What You've Built</h3>
+      <p style="font-size:14px;opacity:.9;margin-bottom:18px">Unlike your CR Path Map &#8212; which you'll update after every meaningful experience &#8212; your PathwayU profile measures things that are relatively stable: interests, personality, values, and workplace preferences. These don't shift quickly. Plan to revisit this unit roughly once a year, or at a major transition &#8212; before a job search, before changing your major, before senior year. When you do return, bring what you learn back to your CR Path Map.</p>
+      <div class="forward-grid">
+        <div class="forward-item">
+          <h4>&#128506;&#65039; Update Your CR Path Map</h4>
+          <p>If you've completed Module 0, go back now. Your CS KSA row should be more specific &#8212; not just "what my major teaches" but named, career-connected skills you're deliberately building toward. Re-rank your Component Strength Sort with fresh eyes. Rewrite your Baseline Reflection with what you now know.</p>
+          <p style="margin-top:6px;font-size:12px;opacity:.7;font-style:italic">Haven't done Module 0 yet? It's the recommended next step &#8212; it gives you a framework to keep building on what you discovered here.</p>
+        </div>
+        <div class="forward-item">
+          <h4>&#129504; Name Your CS KSAs More Precisely</h4>
+          <p>You now have career-specific evidence. The CS KSAs you identified across your three matches aren't generic &#8212; they're tied to careers that fit who you actually are. Start connecting those to courses you're taking or planning. Make those connections visible: in advising, on your resume, in interviews.</p>
+        </div>
+        <div class="forward-item">
+          <h4>&#128260; Take One Concrete ELO Step</h4>
+          <p>You named at least one experiential learning opportunity for each career match. Don't let that sit. Pick the most accessible one and take a single concrete action this week &#8212; look up the program, email a contact, or ask an advisor how to get involved.</p>
+        </div>
+        <div class="forward-item">
+          <h4>&#128101; Find Your Career Mentor</h4>
+          <p>You described the type of mentor you'd need for each career. That description is your search criteria. Look for that person in your faculty, your alumni community, a supervisor, or on LinkedIn. An informational interview &#8212; even 20 minutes &#8212; is Career Mentorship.</p>
+        </div>
+      </div>
+      <p style="margin-top:16px;font-size:13px;opacity:.8;text-align:center">This unit works whether you're inside a course sequence or on your own. Bring your profile and career analysis to advising appointments, informational interviews, resume workshops &#8212; any career conversation where "what do I want and what do I need to build?" is on the table.</p>
+    </div>
+  </div>
+
+  <!-- PAGE 15: PART B REVIEW + EMAIL -->
+  <div class="page hidden" data-page="15">
+    <div class="section-header">
+      <span class="section-tag teal">Part B &#8212; Review</span>
+      <h1>Review Before Submitting</h1>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:20px">Review your Part B responses below. Use the Back button to edit anything.</p>
+    <div class="review-section"><h4>Career 1</h4><div class="review-display" id="review-c1"></div></div>
+    <div class="review-section"><h4>Career 2</h4><div class="review-display" id="review-c2"></div></div>
+    <div class="review-section"><h4>Career 3</h4><div class="review-display" id="review-c3"></div></div>
+    <div class="review-section"><h4>Synthesis</h4><div class="review-display" id="review-synthesis"></div></div>
+    <div class="review-section"><h4>Connection Reflection</h4><div class="review-display" id="review-connection"></div></div>
+    <div class="email-capture">
+      <h4>Get a Copy of Your Responses (Optional)</h4>
+      <p>Enter your CCSU email to receive a copy of your responses. Optionally share with a supervisor, advisor, or mentor &#8212; a great conversation starter.</p>
+      <div class="email-row">
+        <div class="email-field">
+          <label for="student-email">Your CCSU Email <span class="required-star" aria-hidden="true">*</span></label>
+          <input type="email" id="student-email" class="scorm-input" data-interaction="27" placeholder="yourname@my.ccsu.edu" autocomplete="email" aria-required="true" required>
+          <div class="email-warning" id="email-warn">Required. Please enter your CCSU email address.</div>
+        </div>
+        <div class="email-field">
+          <label for="mentor-email">Share with a Supervisor, Advisor, or Mentor (optional):</label>
+          <input type="email" id="mentor-email" class="scorm-input" data-interaction="28" placeholder="Their email address..." autocomplete="off">
+          <p style="font-size:12px;color:var(--muted);margin-top:2px">They'll get a copy of your career match analysis.</p>
+          <div class="email-warning" id="mentor-warn">Please enter a valid email address.</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-callout"><p>When you're satisfied, click <strong>Submit PathwayU Unit</strong> to record your completion.</p></div>
+  </div>
+
+  <!-- PAGE 16: COMPLETE -->
+  <div class="page hidden" data-page="16">
+    <div class="section-header">
+      <span class="section-tag">Complete</span>
+      <h1>PathwayU Unit Complete</h1>
+    </div>
+    <div class="completion-card final" style="text-align:center;padding:32px">
+      <div class="check-icon">&#127881;</div>
+      <h2>You've completed the PathwayU Unit.</h2>
+      <p>You've completed your profile, explored your matches, and translated career requirements into CR Path language.</p>
+      <p style="font-weight:700;color:var(--navy)">This is what intentional career development looks like.</p>
+    </div>
+    <div class="summary-stats">
+      <p><strong>Responses saved:</strong> <span id="total-responses">0</span></p>
+      <p><strong>Part A completed:</strong> <span id="part-a-date">--</span></p>
+      <p><strong>Part B completed:</strong> <span id="part-b-date">--</span></p>
+    </div>
+    <p class="credit" style="margin-top:24px">CR Path: Career Readiness Through Iteration. &copy; 2026 Caleb B. Bragg. CC BY-NC 4.0.</p>
+  </div>
+
+  </main>
+
+  <footer id="nav-footer">
+    <button id="btn-back" class="nav-btn" disabled>Back</button>
+    <div id="nav-spacer"></div>
+    <button id="btn-next" class="nav-btn primary">Next</button>
+    <button id="btn-submit-a" class="nav-btn submit hidden">Submit Part A</button>
+    <button id="btn-submit-b" class="nav-btn submit hidden">Submit PathwayU Unit</button>
+  </footer>
+
+</div>
+</div>
+
+<script>
+function toggleContent(id){var e=document.getElementById(id);if(e)e.classList.toggle('hidden');}
+</script>
+<script src="js/scorm-wrapper.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
