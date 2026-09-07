@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>XR Meditation &amp; Skills Study</title>
+<style>
+:root{
+  --ink:#0D2137; --navy:#14406E; --blue:#2E6A9E; --teal:#16a085;
+  --pale:#EDF2F7; --line:#DCE3EC; --paper:#F7F9FB; --red:#C1452B;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:"Trebuchet MS",Helvetica,Arial,sans-serif;background:var(--paper);color:var(--ink);
+  display:flex;justify-content:center;}
+#app{width:100%;max-width:760px;min-height:100%;display:flex;flex-direction:column;padding:18px 20px 26px;}
+
+/* header */
+.hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.hd .t{font-size:.95rem;font-weight:700;color:var(--navy);letter-spacing:.4px;}
+.hd .phase{font-size:.75rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--teal);}
+.bar{height:7px;background:var(--line);border-radius:5px;overflow:hidden;margin-bottom:16px;}
+.bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--blue),var(--teal));
+  border-radius:5px;transition:width .25s ease;}
+
+/* screen */
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
+h1{font-size:1.45rem;color:var(--navy);line-height:1.3;margin-bottom:10px;}
+.qtext{font-size:1.28rem;font-weight:700;color:var(--ink);line-height:1.4;margin-bottom:16px;}
+.note{font-size:.95rem;color:#44566B;line-height:1.55;margin-bottom:14px;}
+.counter{font-size:.8rem;color:#6C7A8C;margin-bottom:8px;}
+
+/* cards */
+.cards{display:flex;flex-direction:column;gap:11px;}
+.card{border:2px solid var(--line);border-left:7px solid #C9D2DE;border-radius:12px;background:#fff;
+  padding:16px 18px;font-size:1.05rem;line-height:1.45;cursor:pointer;user-select:none;
+  transition:border-color .12s,box-shadow .12s,transform .06s;}
+.card:hover{border-color:var(--blue);box-shadow:0 2px 10px rgba(20,64,110,.12);}
+.card:active{transform:scale(.985);}
+.card.sel{border-color:var(--navy);border-left-color:var(--teal);background:var(--pale);font-weight:700;}
+.card[data-v="1"]{border-left-color:#B9C4D6;} .card[data-v="2"]{border-left-color:#8FA6C4;}
+.card[data-v="3"]{border-left-color:#5E86B0;} .card[data-v="4"]{border-left-color:#2E6A9E;}
+.card[data-v="5"]{border-left-color:#16a085;}
+
+.txtwrap{margin-top:10px;display:none;}
+.txtwrap.show{display:block;}
+.txtwrap input{width:100%;padding:14px;font-size:1.05rem;border:2px solid var(--line);border-radius:10px;}
+
+/* consent */
+.consent{border:2px solid var(--line);border-radius:14px;background:#fff;padding:20px 22px 18px;
+  max-height:52vh;overflow-y:auto;margin-bottom:6px;}
+.consent .ttl{font-size:1.02rem;font-weight:700;color:var(--navy);line-height:1.35;
+  text-align:center;padding-bottom:12px;margin-bottom:16px;border-bottom:2px solid var(--line);}
+.consent h3{font-size:.76rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;
+  color:var(--teal);margin:18px 0 6px;}
+.consent h3:first-of-type{margin-top:0;}
+.consent p{font-size:1rem;line-height:1.62;margin-bottom:10px;color:#243B52;}
+.consent ul{list-style:none;margin:0 0 12px;}
+.consent li{font-size:1rem;line-height:1.55;padding-left:20px;position:relative;margin-bottom:7px;color:#243B52;}
+.consent li:before{content:"";position:absolute;left:4px;top:.62em;width:7px;height:7px;
+  border-radius:50%;background:var(--blue);}
+.consent a{color:var(--blue);}
+.scrollhint{font-size:.82rem;color:#6C7A8C;text-align:center;margin:0 0 16px;}
+
+/* select */
+select{width:100%;padding:16px;font-size:1.2rem;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);}
+
+/* buttons */
+.row{display:flex;gap:12px;margin-top:20px;}
+button{font-family:inherit;font-size:1.05rem;font-weight:700;border:0;border-radius:12px;
+  padding:16px 22px;cursor:pointer;}
+.primary{background:var(--navy);color:#fff;flex:1;}
+.primary:disabled{background:#AEB9C6;cursor:not-allowed;}
+.ghost{background:transparent;color:#6C7A8C;border:0;font-size:.92rem;font-weight:600;
+  text-decoration:underline;padding:16px 10px;}
+.ghost:hover{color:var(--navy);}
+.skip{background:transparent;color:#7A8798;border:0;font-size:.9rem;font-weight:400;
+  font-style:italic;text-decoration:underline;padding:16px 2px;}
+.skip:hover{color:var(--navy);}
+.skipped{border-color:var(--line);border-left-color:#9AA7B6;background:#F3F5F8;
+  color:#6C7A8C;font-style:italic;}
+.danger{background:var(--red);color:#fff;}
+
+.spacer{flex:1;}
+.devbar{position:fixed;left:0;right:0;bottom:0;background:#4A1D14;color:#FFD9CF;
+  display:flex;align-items:center;gap:10px;padding:8px 12px;z-index:99;
+  font-size:.78rem;letter-spacing:.4px;}
+.devbar b{color:#fff;letter-spacing:1px;}
+.devbar button{font-size:.76rem;font-weight:700;padding:8px 11px;border-radius:8px;
+  background:#C1452B;color:#fff;}
+.devbar .sp{flex:1;}
+body.dev #app{padding-bottom:64px;}
+.done-code{font-family:Consolas,monospace;font-size:1.5rem;font-weight:700;color:var(--teal);
+  background:#fff;border:2px dashed var(--teal);border-radius:12px;padding:16px;text-align:center;margin:16px 0;}
+.gatebox{background:#fff;border:2px solid var(--line);border-left:8px solid var(--teal);border-radius:12px;
+  padding:20px;font-size:1.08rem;line-height:1.6;margin:14px 0;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hd"><span class="t">XR Meditation &amp; Skills Study</span><span class="phase" id="phaseLbl"></span></div>
+  <div class="bar"><i id="prog"></i></div>
+  <div id="screen" style="flex:1;display:flex;flex-direction:column;"></div>
+</div>
+<script>
+/* ============================================================
+   CONFIGURATION — the only part you edit
+   1. Create the catcher survey in Qualtrics (import XR_Catcher.qsf).
+   2. Publish it, copy its Anonymous Link, paste it below.
+   ============================================================ */
+var CONFIG = {
+  qualtricsUrl: 'https://ccsu.qualtrics.com/jfe/form/SV_abpNbBdAHqOpSNo',
+  build: '1.7',
+  /* Back button within a part. Part A always locks once submitted, regardless. */
+  allowBack: true,
+  /* Item-level refusal, per the consent form ("you may choose not to answer a
+     question"). Declined items are stored as skipCode so they are distinguishable
+     from items never reached (blank). */
+  allowSkip: true,
+  skipCode: '-99',
+  storageKey: 'xrms_v1'
+};
+
+var QD = {"scale":[["1","Strongly Disagree"],["2","Disagree"],["3","Neutral"],["4","Agree"],["5","Strongly Agree"]],"preMatrices":[{"tag":"ATT_VR","eyebrow":"Attitudes toward VR","intro":"Please read each question carefully and indicate to what extent you agree or disagree.","items":[["1","Virtual reality increases my study efficiency."],["2","Using virtual reality for learning boosts my productivity."],["3","Virtual reality increases my learning efficiency."],["4","Using virtual reality for learning purposes helps my professional development."],["5","I find using virtual reality helpful for learning purposes."],["6","I think it’s a good idea to use virtual reality for learning purposes."],["7","I will encourage people around me to use virtual reality for learning purposes"],["8","Using virtual reality for learning helps me from my professional perspective."],["9","Using virtual reality for learning helps solve problems from my professional perspective."],["10","Using virtual reality for learning helps solve problems I encounter in learning."]]},{"tag":"Att_AI","eyebrow":"Attitudes toward AI","intro":"Please read each question carefully and indicate to what extent you agree or disagree.","items":[["1","AI will make this world a better place."],["2","AI has more disadvantages than advantages."],["3","AI offers solutions to many world problems."],["4","AI creates problems rather than solving them."],["5","AI makes me strongly emotional about AI."],["6","I look forward to future AI developments."],["7","I am afraid of AI."],["8","When I think about AI, I have mostly positive feelings."],["9","I want to use technologies that rely on AI."],["10","I prefer technologies that do not feature AI."],["11","I would rather avoid a technology with AI than one without it."],["12","I would rather avoid technologies that are based on AI."],["13","I believe that AI will improve my life"],["14","I believe that AI will improve my work"],["15","I think I will use AI technology in the future"],["16","I think AI technology is positive for humanity"]]},{"tag":"DegVal","eyebrow":"Your CCSU experience","intro":"Please indicate how much you agree or disagree with each statement about your experience at Central Connecticut State University.","items":[["1","I enjoy participating in various activities with my professors at CCSU."],["2","I feel happy when attending cultural events organized by CCSU."],["3","The education provided at CCSU is essential for my personal development."],["4","I have positive relationships with my professors at CCSU."],["5","CCSU plays an important role in helping me achieve my goals."],["6","My education at CCSU is important for my future success."],["7","I do not believe CCSU contributes to the achievement of my goals."],["8","I believe CCSU is necessary for my professional development."],["9","A CCSU degree will significantly improve my career opportunities."],["10","My college education is worth the financial investment."],["11","Attending CCSU is helping me grow as a person beyond academics."],["12","My CCSU education is preparing me to contribute meaningfully to my community."],["13","What I learn here is directly applicable to real-world situations."],["14","CCSU helps me develop skills that employers value."]]},{"tag":"STAI_T","eyebrow":"How you generally feel about VR training","intro":"\"A number of statements that people use to describe their feelings are given below. Read each statement and indicate the response that best indicates how you generally feel when you anticipate or participate in VR‑based training scenarios.\"","items":[["1","I feel calm when I know I will be using VR for training."],["2","I worry about my performance in VR training even before it begins."],["3","I feel at ease when I think about upcoming VR scenarios."],["4","I get tense when I imagine myself in a VR training environment."],["5","I feel confident in my ability to handle VR based challenges."],["6","I find myself dwelling on possible mistakes I might make in VR."],["7","I feel relaxed when preparing for VR training sessions."],["8","I get nervous thinking about interacting in VR environments."],["9","I feel secure in my ability to adapt to VR training demands."],["10","I worry that I will not perform well in VR based tasks."],["11","I feel comfortable learning new skills in VR."],["12","I get uneasy when I think about the realism of VR scenarios."],["13","I feel steady and composed when anticipating VR training."],["14","I tend to overthink possible difficulties in VR environments."],["15","I feel self assured about my VR training abilities."],["16","I get anxious when I imagine unexpected events occurring in VR."],["17","I feel prepared to deal with challenges in VR training."],["18","I worry about how I will react under pressure in VR scenarios."],["19","I feel positive about my capacity to succeed in VR training."],["20","I get stressed when I think about the demands of VR based learning."]]},{"tag":"STAI_S","eyebrow":"How you feel right now","intro":"\"A number of statements that people use to describe their feelings are given below. Read each statement and indicate the response that best indicates how you feel right now, about the upcoming VR training scenario .\"","items":[["1","I feel calm about the VR scenario."],["2","I feel relaxed about being immersed in the VR environment."],["3","I feel content thinking how my performance will be in the VR task."],["4","I feel upset by elements of the VR experience."],["5","I feel tense about interacting in the VR scenario."],["6","I feel worried about making mistakes in the VR task."]]}],"postMatrices":[{"tag":"ATT_VR","eyebrow":"Attitudes toward VR","intro":"Please read each question carefully and indicate to what extent you agree or disagree.","items":[["1","Virtual reality increases my study efficiency."],["2","Using virtual reality for learning boosts my productivity."],["3","Virtual reality increases my learning efficiency."],["4","Using virtual reality for learning purposes helps my professional development."],["5","I find using virtual reality helpful for learning purposes."],["6","I think it’s a good idea to use virtual reality for learning purposes."],["7","I will encourage people around me to use virtual reality for learning purposes"],["8","Using virtual reality for learning helps me from my professional perspective."],["9","Using virtual reality for learning helps solve problems from my professional perspective."],["10","Using virtual reality for learning helps solve problems I encounter in learning."]]},{"tag":"Att_AI","eyebrow":"Attitudes toward AI","intro":"Please read each question carefully and indicate to what extent you agree or disagree.","items":[["1","AI will make this world a better place."],["2","AI has more disadvantages than advantages."],["3","AI offers solutions to many world problems."],["4","AI creates problems rather than solving them."],["5","AI makes me strongly emotional about AI."],["6","I look forward to future AI developments."],["7","I am afraid of AI."],["8","When I think about AI, I have mostly positive feelings."],["9","I want to use technologies that rely on AI."],["10","I prefer technologies that do not feature AI."],["11","I would rather avoid a technology with AI than one without it."],["12","I would rather avoid technologies that are based on AI."],["13","I believe that AI will improve my life"],["14","I believe that AI will improve my work"],["15","I think I will use AI technology in the future"],["16","I think AI technology is positive for humanity"]]},{"tag":"DegVal","eyebrow":"Your CCSU experience","intro":"Please indicate how much you agree or disagree with each statement about your experience at Central Connecticut State University.","items":[["1","I enjoy participating in various activities with my professors at CCSU."],["2","I feel happy when attending cultural events organized by CCSU."],["3","The education provided at CCSU is essential for my personal development."],["4","I have positive relationships with my professors at CCSU."],["5","CCSU plays an important role in helping me achieve my goals."],["6","My education at CCSU is important for my future success."],["7","I do not believe CCSU contributes to the achievement of my goals."],["8","I believe CCSU is necessary for my professional development."],["9","A CCSU degree will significantly improve my career opportunities."],["10","My college education is worth the financial investment."],["11","Attending CCSU is helping me grow as a person beyond academics."],["12","My CCSU education is preparing me to contribute meaningfully to my community."],["13","What I learn here is directly applicable to real-world situations."],["14","CCSU helps me develop skills that employers value."]]},{"tag":"STAI_S","eyebrow":"How you feel right now, after the VR training","intro":"\"A number of statements that people use to describe their feelings are given below. Read each statement and indicate the response that best indicates how you feel right now, immediately after the VR training scenario. \"","items":[["1","I felt calm during the VR scenario."],["2","I felt relaxed while immersed in the VR environment."],["3","I feel content with my performance in the VR task."],["4","I feel upset by elements of the VR experience."],["5","I felt tense while interacting in the VR scenario."],["6","I felt worried about making mistakes in the VR task."]]}],"demog":[{"tag":"VR_Freq","type":"mc","text":"How often have you used Virtual Reality prior to today's study?","choices":[["1","Never"],["2","1-3 times"],["3","Every few months"],["4","Several times a month"],["5","Several times a week"]]},{"tag":"Ethnicity","type":"multi","text":"What racial/ethnic groups do you belong to? Select all that apply.","choices":[["9","American Indian or Alaska Native- A person having origins in any of the original peoples of North and South America (including Central America), and who maintains tribal affiliation or community attachment."],["10","Asian- A person having origins in any of the original peoples of the Far East, Southeast Asia, or the Indian subcontinent including, for example, Cambodia, China, India, Japan, Korea, Malaysia, Pakistan, the Philippine Islands, Thailand, and Vietnam."],["11","Black or African American- A person having origins in any of the black racial groups of Africa."],["12","Hispanic or Latino- A person of Cuban, Mexican, Puerto Rican, South or Central American, or other Spanish culture or origin."],["13","Native Hawaiian and Other Pacific Islander- A person having origins in any of the original peoples of Hawaii, Guam, Samoa, or other Pacific Islands."],["14","White- A person having origins in any of the original peoples of Europe, the Middle East, or North Africa."],["16","Prefer not to answer"],["17","Not Listed (please specify)"]],"specify":"17"},{"tag":"Sex","type":"mc","text":"What sex where you assigned at birth, on your original birth certificate?","choices":[["1","Female"],["2","Male"],["3","Don't know"],["4","Prefer not to answer"]]},{"tag":"Gender","type":"mc","text":"To which gender identity do you most identify?","choices":[["1","Female"],["2","Male"],["3","Transgender"],["4","I use a different term (please specify)"],["5","Don't know"],["6","Prefer not to answer"]],"specify":"4"}],"consent":{"title":"“XR Meditation and Virtual Skill Acquisition” Research Study — Consent to be a Research Subject","blocks":[{"t":"h","v":"Introduction"},{"t":"p","v":"This research study is being conducted by Caleb Bragg, Associate Professor of Psychology at Central Connecticut State University to examine the impact of meditation on virtual reality skill training. You were invited to participate because you are currently a college student enrolled in courses at Central Connecticut State University."},{"t":"h","v":"Selection Criteria"},{"t":"p","v":"To participate in this study, you must have:"},{"t":"ul","v":["Normal or corrected vision (glasses/contacts ok)","A smart device (tablet or smartphone that can scan a QR code)"]},{"t":"h","v":"Procedures"},{"t":"p","v":"If you agree to participate in this research study, the following will occur:"},{"t":"ul","v":["you will sign up on SONA for timeslot to come to the XR Lab (Applied Innovation Hub, Room 201)","you will use your smart device to scan a QR code and take a 70-item pre assessment","you will then complete a few VR tasks using a Meta Quest 2 headset.","following the VR tasks, you will scan a different QR code and take a 46-item post-assessment","total time commitment will be one 65-minute in-person online session, for which you will earn 5 SONA credits."]},{"t":"h","v":"Risks/Discomforts"},{"t":"p","v":"There are minimal risks for participation in this study. However, you may feel some discomfort or mild nausea when using the VR Headset. You may also feel some discomfort answering questions about your personality, attitudes, or reviewing past behavior. If you feel embarrassed or uncomfortable, or you simply do not wish to participate at any point during the study, you may choose not to answer a question or you may withdraw without any consequences. If you want to withdraw from the study at any time, for any reason, you may do so."},{"t":"h","v":"Benefits"},{"t":"p","v":"There will be no direct benefits to you. However, it is hoped that through your participation researchers will learn about different training modalities and the impact of mediation on virtual skill acquisition. This knowledge we could gain could possibly help researchers and academics better understand and help students succeed in the classroom, the workplace, and in adapting new technologies and techniques for students to prepare for skill acquisition and beyond."},{"t":"h","v":"Confidentiality"},{"t":"p","v":"The research data will be kept in de-identified, aggregated anonymous data sets in that no one, the researcher included, will be able to link the results to the subject’s identity. The data will be stored in a secure location, password protected in an encrypted website for the duration of the study, and as soon as the data has all been collected, it will be transferred to a password protected folder on the researcher’s computer, and only the researcher will have direct access to the data. At the conclusion of the study, all identifying information will be removed and the data will be kept on the researcher’s computer in a password protected folder."},{"t":"h","v":"Compensation"},{"t":"p","v":"Each participant will be compensated with 5 SONA Credits for their participation if they complete every part of the study. Participants that withdraw from the study will have their SONA credits prorated."},{"t":"h","v":"Participation"},{"t":"p","v":"Participation in this research study is voluntary. You have the right to withdraw at any time or refuse to participate entirely without prejudice or consequence."},{"t":"h","v":"Questions about the Research"},{"t":"p","v":"If you have questions regarding this study, you may contact Caleb Bragg, PhD, at bragg.cb@ccsu.edu."},{"t":"h","v":"Questions about your Rights as Research Participants"},{"t":"p","v":"If you have general questions concerning your rights as a research participant you may contact the Central Connecticut State University Institutional Review Board (phone number: 860-832-1938), Davidson Hall, Room 113, Central Connecticut State University, New Britain, CT, 06050 or you may contact Dr. Jeremy Visone, IRB Chair via email: visone@ccsu.edu"},{"t":"p","v":"If you wish to have a copy of this informed consent document, please send an email to Caleb Bragg at bragg.cb@ccsu.edu."}]}};
+
+/* ---------- state ---------- */
+var S = load() || { pid:null, station:'', ans:{}, phase:'A', idx:0,
+                    aDone:false, bDone:false, t0:Date.now(), consent:'' };
+function save(){ try{ localStorage.setItem(CONFIG.storageKey, JSON.stringify(S)); }catch(e){} }
+function load(){ try{ return JSON.parse(localStorage.getItem(CONFIG.storageKey)); }catch(e){ return null; } }
+function newPID(){ return 'XR-' + Date.now().toString(36).toUpperCase() + '-' +
+  Math.random().toString(36).slice(2,6).toUpperCase(); }
+
+/* URL params can preset session info: ?SID=2026-11-04-AM&Cond=custVR */
+var URLP = {};
+try{ new URL(location.href).searchParams.forEach(function(v,k){ URLP[k]=v; }); }catch(e){}
+
+/* ---------- screen list builders ---------- */
+function matrixScreens(mats, prefix){
+  var out = [];
+  mats.forEach(function(m){
+    out.push({ type:'instr', eyebrow:m.eyebrow, text:m.intro });
+    m.items.forEach(function(it, i){
+      out.push({ type:'item', tag:m.tag+'_'+it[0], eyebrow:m.eyebrow, text:it[1] });
+    });
+  });
+  return out;
+}
+function buildA(){
+  var sc = [];
+  sc.push({type:'introA'});
+  sc.push({type:'consent'});
+  sc.push({type:'station'});
+  sc = sc.concat(matrixScreens(QD.preMatrices));
+  QD.demog.forEach(function(d){ sc.push({type:d.type, d:d}); });
+  sc.push({type:'submitA'});
+  return sc;
+}
+function buildB(){
+  var sc = [];
+  sc.push({type:'introB'});
+  sc.push({type:'station'});
+  sc = sc.concat(matrixScreens(QD.postMatrices));
+  sc.push({type:'submitB'});
+  return sc;
+}
+var SCREENS = { A: buildA(), B: buildB() };
+
+/* item counts for the progress bar (answerable screens only) */
+function answerable(list){ return list.filter(function(s){
+  return ['item','mc','multi','station','consent'].indexOf(s.type)>=0; }).length; }
+var TOT = { A: answerable(SCREENS.A), B: answerable(SCREENS.B) };
+function answeredSoFar(){
+  var n=0;
+  SCREENS[S.phase].slice(0, S.idx).forEach(function(s){
+    if(['item','mc','multi','station','consent'].indexOf(s.type)>=0) n++;
+  });
+  return n;
+}
+
+/* ---------- rendering ---------- */
+var scr = document.getElementById('screen');
+var prog = document.getElementById('prog');
+var phaseLbl = document.getElementById('phaseLbl');
+
+function el(tag, cls, htmlStr){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(htmlStr !== undefined) e.innerHTML = htmlStr;
+  return e;
+}
+function esc(t){ var d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function linkify(t){
+  return t.replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>');
+}
+
+function render(){
+  save();
+  var list = SCREENS[S.phase];
+  if(S.bDone){ return renderDone(); }
+  if(S.aDone && S.phase==='A'){ return renderGate(); }
+  var s = list[S.idx];
+  phaseLbl.textContent = 'Part ' + S.phase;
+  prog.style.width = Math.round(100*answeredSoFar()/TOT[S.phase]) + '%';
+  scr.innerHTML = '';
+
+  if(s.type==='introA'){
+    scr.appendChild(el('div','eyebrow','CCSU XR Lab · OPAL'));
+    scr.appendChild(el('h1',null,'Welcome'));
+    scr.appendChild(el('p','note','This has two parts. <b>Part A</b> now, before your session. <b>Part B</b> right after. Tap an answer to select it; it advances automatically. There are no right or wrong answers.'));
+    if(load() && load().aDone){ }
+    footer(true, false, 'Begin Part A');
+    return;
+  }
+  if(s.type==='introB'){
+    scr.appendChild(el('div','eyebrow','Part B'));
+    scr.appendChild(el('h1',null,'Welcome back'));
+    scr.appendChild(el('p','note','A few final questions about the session you just completed.'));
+    footer(true, false, 'Begin Part B');
+    return;
+  }
+  if(s.type==='consent'){
+    scr.appendChild(el('div','eyebrow','Informed consent'));
+    var box = el('div','consent');
+    box.appendChild(el('div','ttl', esc(QD.consent.title)));
+    QD.consent.blocks.forEach(function(b){
+      if(b.t==='h'){ box.appendChild(el('h3',null,esc(b.v))); }
+      else if(b.t==='ul'){
+        var ul = document.createElement('ul');
+        b.v.forEach(function(li){ ul.appendChild(el('li',null,linkify(esc(li)))); });
+        box.appendChild(ul);
+      } else { box.appendChild(el('p',null,linkify(esc(b.v)))); }
+    });
+    scr.appendChild(box);
+    scr.appendChild(el('p','scrollhint','Scroll to read the full consent form'));
+    scr.appendChild(el('p','qtext','Do you agree to participate in this study?'));
+    choiceCards([['1','Yes, I agree to participate'],['2','No, I do not agree']], S.consent, function(v){
+      S.consent = v; save();
+      if(v==='2'){ renderDeclined(); } else { advance(); }
+    });
+    footer(false, S.idx>1);
+    return;
+  }
+  if(s.type==='station'){
+    scr.appendChild(el('div','eyebrow','Your machine'));
+    scr.appendChild(el('p','qtext','Select the number on the QR Card at your station (1\u201312).'));
+    var sel = el('select');
+    sel.appendChild(el('option',null,'Choose\u2026'));
+    for(var i=1;i<=12;i++){ var o=el('option',null,'Station '+i); o.value=String(i); if(S.station===String(i)) o.selected=true; sel.appendChild(o); }
+    sel.onchange = function(){ S.station = sel.value; save(); nextBtn.disabled = !S.station; };
+    scr.appendChild(sel);
+    footer(true, S.idx>0); nextBtn.disabled = !S.station;
+    return;
+  }
+  if(s.type==='instr'){
+    scr.appendChild(el('div','eyebrow',esc(s.eyebrow)));
+    scr.appendChild(el('p','note',esc(s.text)));
+    footer(true, true, 'Continue');
+    return;
+  }
+  if(s.type==='item'){
+    scr.appendChild(el('div','eyebrow',esc(s.eyebrow)));
+    scr.appendChild(el('div','counter','Question ' + (answeredSoFar()+1) + ' of ' + TOT[S.phase]));
+    scr.appendChild(el('p','qtext',esc(s.text)));
+    var cur = S.ans[key(s.tag)];
+    choiceCards(QD.scale, cur, function(v){ S.ans[key(s.tag)]=v; save(); setTimeout(advance,180); }, true);
+    if(cur === CONFIG.skipCode) markDeclined();
+    footer(false, true, null, s.tag);
+    return;
+  }
+  if(s.type==='mc'){
+    scr.appendChild(el('div','eyebrow','About you'));
+    scr.appendChild(el('p','qtext',esc(s.d.text)));
+    choiceCards(s.d.choices, S.ans[key(s.d.tag)], function(v, cardWrap){
+      S.ans[key(s.d.tag)]=v; save();
+      if(s.d.specify && v===s.d.specify){ showSpecify(s.d.tag); } else { hideSpecify(); setTimeout(advance,180); }
+    });
+    specifyBox(s.d, false);
+    if(S.ans[key(s.d.tag)] === CONFIG.skipCode) markDeclined();
+    footer(false, true, null, s.d.tag);
+    return;
+  }
+  if(s.type==='multi'){
+    scr.appendChild(el('div','eyebrow','About you'));
+    scr.appendChild(el('p','qtext',esc(s.d.text)));
+    var cur = (S.ans[key(s.d.tag)]||'').split(',').filter(Boolean);
+    var wrap = el('div','cards');
+    s.d.choices.forEach(function(c){
+      var card = el('div','card'+(cur.indexOf(c[0])>=0?' sel':''), esc(c[1]));
+      card.onclick = function(){
+        var setv = (S.ans[key(s.d.tag)]||'').split(',').filter(Boolean);
+        var at = setv.indexOf(c[0]);
+        if(at>=0) setv.splice(at,1); else setv.push(c[0]);
+        S.ans[key(s.d.tag)] = setv.join(','); save();
+        card.classList.toggle('sel');
+        if(s.d.specify){ (setv.indexOf(s.d.specify)>=0) ? showSpecify(s.d.tag) : hideSpecify(); }
+        nextBtn.disabled = setv.length===0;
+      };
+      wrap.appendChild(card);
+    });
+    scr.appendChild(wrap);
+    specifyBox(s.d, cur.indexOf(s.d.specify)>=0);
+    if(S.ans[key(s.d.tag)] === CONFIG.skipCode) markDeclined();
+    footer(true, true, 'Continue', s.d.tag); nextBtn.disabled = cur.length===0;
+    return;
+  }
+  if(s.type==='submitA' || s.type==='submitB'){
+    var part = s.type==='submitA' ? 'A' : 'B';
+    scr.appendChild(el('div','eyebrow','Part '+part));
+    scr.appendChild(el('h1',null,'Ready to submit Part '+part));
+    scr.appendChild(el('p','note','Tap Submit to record your responses. You can go back and change answers first.'));
+    footer(true, true, 'Submit Part '+part);
+    nextBtn.onclick = function(){
+      nextBtn.disabled = true;
+      if(part==='A'){ post('pre'); S.aDone = true; save(); renderGate(); }
+      else { post('post'); S.bDone = true; save(); renderDone(); }
+    };
+    return;
+  }
+}
+
+/* Answers are stored namespaced by part. Part B must never display, inherit, or
+   overwrite a Part A response — that is the pre/post contamination the sealed
+   gate exists to prevent. Field names are un-namespaced again at submission. */
+function key(tag){ return S.phase + '__' + tag; }
+
+function choiceCards(choices, selected, onPick, withLevels){
+  var wrap = el('div','cards');
+  choices.forEach(function(c){
+    var card = el('div','card'+(selected===c[0]?' sel':''), esc(c[1]));
+    if(withLevels) card.setAttribute('data-v', c[0]);
+    card.onclick = function(){
+      Array.prototype.forEach.call(wrap.children, function(k){ k.classList.remove('sel'); });
+      card.classList.add('sel');
+      onPick(c[0], wrap);
+    };
+    wrap.appendChild(card);
+  });
+  scr.appendChild(wrap);
+}
+
+function markDeclined(){
+  var n = el('p','counter','You chose not to answer this question. Tap any option to answer it after all.');
+  n.style.cssText = 'margin-top:12px;font-style:italic;';
+  scr.appendChild(n);
+}
+var specEl=null;
+function specifyBox(d, show){
+  specEl = el('div','txtwrap'+(show?' show':''));
+  var inp = el('input'); inp.placeholder = 'Please specify (optional)';
+  inp.value = S.ans[key(d.tag)+'_txt']||'';
+  inp.oninput = function(){ S.ans[key(d.tag)+'_txt']=inp.value; save(); };
+  specEl.appendChild(inp); scr.appendChild(specEl);
+  if(show){ /* keep Continue visible for typed entry */ }
+}
+function showSpecify(tag){ if(specEl){ specEl.classList.add('show');
+  footerSwapToContinue(); } }
+function hideSpecify(){ if(specEl) specEl.classList.remove('show'); }
+function footerSwapToContinue(){ if(nextBtn){ nextBtn.style.display='block'; nextBtn.disabled=false; nextBtn.textContent='Continue'; } }
+
+var nextBtn=null, backBtn=null, skipBtn=null;
+function footer(showNext, showBack, nextLabel, skipTag){
+  var row = el('div','row');
+  backBtn = el('button','ghost','\u2190 Previous question');
+  backBtn.onclick = back;
+  if(showBack && CONFIG.allowBack) row.appendChild(backBtn);
+  row.appendChild(el('div','spacer'));
+  if(skipTag && CONFIG.allowSkip){
+    skipBtn = el('button','skip','Prefer not to answer');
+    skipBtn.onclick = function(){ skipItem(skipTag); };
+    row.appendChild(skipBtn);
+  }
+  nextBtn = el('button','primary', nextLabel||'Continue');
+  nextBtn.onclick = advance;
+  if(!showNext) nextBtn.style.display='none';
+  row.appendChild(nextBtn);
+  scr.appendChild(row);
+}
+function skipItem(tag){
+  S.ans[key(tag)] = CONFIG.skipCode;
+  if(S.ans[key(tag)+'_txt']) delete S.ans[key(tag)+'_txt'];
+  save(); advance();
+}
+function advance(){ S.idx++; save(); render(); }
+function back(){
+  if(!CONFIG.allowBack) return;
+  if(S.aDone && S.phase==='A') return;      /* Part A is sealed once submitted */
+  if(S.idx>0){ S.idx--; save(); render(); }
+}
+
+function renderGate(){
+  phaseLbl.textContent = 'Between parts';
+  prog.style.width = '50%';
+  scr.innerHTML = '';
+  scr.appendChild(el('h1',null,'Part A recorded'));
+  scr.appendChild(el('div','gatebox','You may now begin your session. When your VR training scenario is <b>finished</b>, return here for Part B. Leave this tab open.'));
+  var row = el('div','row');
+  var b = el('button','primary','My session is finished \u2014 begin Part B');
+  b.onclick = function(){
+    if(confirm('Has your VR training scenario fully finished?')){
+      S.phase='B'; S.idx=0; save(); render();
+    }
+  };
+  row.appendChild(b); scr.appendChild(row);
+}
+function renderDone(){
+  phaseLbl.textContent = 'Complete';
+  prog.style.width='100%';
+  scr.innerHTML = '';
+  scr.appendChild(el('h1',null,'All done \u2014 thank you!'));
+  scr.appendChild(el('p','note','Show this code to the research assistant:'));
+  scr.appendChild(el('div','done-code', esc(S.pid||'')));
+  var row = el('div','row');
+  var b = el('button','danger','Research assistant: start next participant');
+  b.onclick = function(){
+    if(confirm('Clear this participant and reset for the next one?')){
+      try{ localStorage.removeItem(CONFIG.storageKey); }catch(e){}
+      location.reload();
+    }
+  };
+  row.appendChild(b); scr.appendChild(row);
+}
+function renderDeclined(){
+  scr.innerHTML='';
+  phaseLbl.textContent='';
+  scr.appendChild(el('h1',null,'No problem.'));
+  scr.appendChild(el('p','note','You have chosen not to participate. Please remove the headset and let the research assistant know. Thank you for your time.'));
+  post('declined');
+  var row = el('div','row');
+  var b = el('button','danger','Research assistant: reset');
+  b.onclick = function(){ try{ localStorage.removeItem(CONFIG.storageKey); }catch(e){} location.reload(); };
+  row.appendChild(b); scr.appendChild(row);
+}
+
+/* ---------- submission: hidden form GET into an iframe ----------
+   Qualtrics reads embedded data from the URL query string only; a POST body
+   is ignored (confirmed 2026-09-07). GET with ~85 short fields is ~1.5 KB, well
+   under any URL limit. In dev mode (?dev=1) the iframe is left visible so you
+   can watch the catcher's thank-you page render. */
+function post(phase){
+  if(!S.pid){ S.pid = newPID(); save(); }
+  var payload = {
+    PID: S.pid, Phase: phase, Station: S.station, Consent: S.consent,
+    SessID: (URLP.SessID||URLP.SID||''), Cond: URLP.Cond||'', Build: CONFIG.build,
+    SubID: newPID(), StartISO: new Date(S.t0).toISOString(),
+    DurSec: String(Math.round((Date.now()-S.t0)/1000)),
+    UA: navigator.userAgent.slice(0,120)
+  };
+  var pfx = (phase==='post') ? 'B__' : 'A__';
+  for(var k in S.ans){
+    if(!S.ans.hasOwnProperty(k)) continue;
+    if(k.indexOf(pfx) !== 0) continue;          /* other part's data never rides along */
+    payload[k.slice(pfx.length)] = String(S.ans[k]);
+  }
+
+  var frameName = 'q_'+Date.now();
+  var ifr = document.createElement('iframe');
+  ifr.name = frameName;
+  /* Always attach to <body>: the screen area is redrawn right after post(),
+     and an iframe placed there would be destroyed before the request completes. */
+  ifr.style.cssText = DEV ? 'position:fixed;left:0;right:0;bottom:0;height:220px;border:0;border-top:3px dashed #c00;background:#fff;z-index:9999;'
+                          : 'position:absolute;width:1px;height:1px;border:0;visibility:hidden;';
+  document.body.appendChild(ifr);
+  var form = document.createElement('form');
+  form.method='GET'; form.action=CONFIG.qualtricsUrl; form.target=frameName;
+  form.acceptCharset='UTF-8'; form.style.display='none';
+  for(var key2 in payload){
+    var inp = document.createElement('input');
+    inp.type='hidden'; inp.name=key2; inp.value=payload[key2];
+    form.appendChild(inp);
+  }
+  document.body.appendChild(form);
+  form.submit();
+  setTimeout(function(){
+    if(form.parentNode) form.parentNode.removeChild(form);
+    if(ifr.parentNode) ifr.parentNode.removeChild(ifr);
+  }, 15000);
+}
+
+/* ---------- dev mode (only with ?dev=1 in the URL) ---------- */
+var DEV = (URLP.dev === '1');
+function devFill(){
+  var list = SCREENS[S.phase];
+  list.forEach(function(sc){
+    if(sc.type === 'item'){
+      if(!S.ans[key(sc.tag)]) S.ans[key(sc.tag)] = String(1 + Math.floor(Math.random()*5));
+    } else if(sc.type === 'mc' || sc.type === 'multi'){
+      if(!S.ans[key(sc.d.tag)]){
+        var ch = sc.d.choices[Math.floor(Math.random()*sc.d.choices.length)][0];
+        S.ans[key(sc.d.tag)] = ch;
+        if(sc.d.specify && ch === sc.d.specify) S.ans[key(sc.d.tag)+'_txt'] = 'dev test entry';
+      }
+    }
+  });
+  if(!S.station) S.station = '12';
+  if(!S.consent) S.consent = '1';
+  /* jump to this part's submit screen */
+  for(var i=0;i<list.length;i++){ if(list[i].type.indexOf('submit')===0){ S.idx = i; break; } }
+  save(); render();
+}
+function devReset(){
+  try{ localStorage.removeItem(CONFIG.storageKey); }catch(e){}
+  location.reload();
+}
+function devBar(){
+  if(!DEV) return;
+  document.body.classList.add('dev');
+  var bar = el('div','devbar');
+  bar.appendChild(el('b',null,'DEV MODE'));
+  bar.appendChild(el('span',null,'test data only \u2014 remove ?dev=1 for live use'));
+  bar.appendChild(el('div','sp'));
+  var f = el('button',null,'Fill rest of Part ' + S.phase);
+  f.onclick = devFill;
+  var r = el('button',null,'Reset');
+  r.onclick = devReset;
+  bar.appendChild(f); bar.appendChild(r);
+  document.body.appendChild(bar);
+}
+
+/* ---------- boot ---------- */
+if(!S.pid){ S.pid = newPID(); save(); }
+render();
+devBar();
+if(DEV){
+  var _render = render;
+  render = function(){ _render(); var b = document.querySelector('.devbar button');
+    if(b) b.textContent = 'Fill rest of Part ' + S.phase; };
+}
+</script>
+</body>
+</html>
