@@ -237,9 +237,29 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
 }
 
 .keep-notice{border:3px solid var(--navy);background:#fff8e6;border-radius:var(--rl);padding:14px 16px;margin:0 0 18px}
+/* v2.5: first-pass vs. returner copy, LMS-only hiding, previous answers, pass card */
+.mode-first .return-only{display:none!important}.mode-return .first-only{display:none!important}
+.in-lms .resume-link-ui{display:none!important}
+.prev-answer{border:1px dashed var(--purple);background:#f6f4fb;border-radius:var(--r);padding:6px 10px;margin:6px 0 8px;font-size:13px}
+.prev-answer summary{cursor:pointer;font-weight:600;color:var(--purple)}.prev-answer-body{white-space:pre-wrap;margin-top:6px;color:var(--text)}
+.pass-card{background:var(--white);border:2px solid var(--navy);border-radius:var(--rl);padding:18px;margin:0 0 18px}
+.pass-card h3{font-size:16px;color:var(--navy);margin-bottom:8px}.pass-choices{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.pass-btn{flex:1 1 200px;padding:12px 14px;border:2px solid var(--border);border-radius:var(--r);background:#fff;font:inherit;font-weight:600;color:var(--navy);cursor:pointer;text-align:left}
+.pass-btn.selected{border-color:var(--orange);background:#fff4ec}.pass-btn small{display:block;font-weight:400;color:var(--muted);margin-top:3px}
+.pass-followup{margin-top:10px;display:grid;gap:10px}.pass-followup label{font-size:13px;font-weight:600;color:var(--navy)}
+.pass-followup select{width:100%;padding:8px;border:1.5px solid var(--border);border-radius:var(--r);font:inherit;margin-top:3px}
+.name-field input{width:100%;padding:8px;border:1.5px solid var(--border);border-radius:var(--r);font:inherit}
+.unlock-line{font-size:14px;color:var(--navy);margin-top:6px}.unlock-line strong{white-space:nowrap}
 .keep-notice h3{font-size:17px;font-weight:800;color:var(--navy);letter-spacing:.02em;margin:0 0 6px;text-transform:uppercase}
 .keep-notice p{font-size:14px;margin:0;line-height:1.55}
 .keep-notice strong{color:var(--navy)}
+.save-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin:6px 0 14px}
+#copy-fallback{position:fixed;inset:0;background:rgba(27,31,75,.55);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px}
+#copy-fallback .cf-box{background:#fff;border-radius:var(--rl);padding:18px;max-width:640px;width:100%;box-shadow:var(--shm)}
+#copy-fallback h4{font-size:15px;color:var(--navy);margin-bottom:6px}
+#copy-fallback p{font-size:13px;color:var(--muted);margin-bottom:10px}
+#copy-fallback textarea{width:100%;height:260px;font:13px/1.5 monospace;border:1px solid var(--border);border-radius:var(--r);padding:10px}
+#copy-fallback .cf-actions{text-align:right;margin-top:10px}
 #print-sheet { display: none; }
 @media print {
   body.print-full-record #app-wrapper, body.print-full-record #module-shell { display: none !important; }
@@ -324,7 +344,7 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
     <div class="page" data-page="1" data-section="overview" data-part="A">
       <div class="section-header"><span class="section-tag">Module 0</span><h1>The CR Path</h1><p class="subtitle">"Where Are You Now -- and Where Are You Going?"</p></div>
       <div class="keep-notice"><h3>&#128190; Your work here gets saved &mdash; and travels with you</h3>
-<p>This module saves your progress in this browser as you go. When you finish Part A, you can copy a <strong>Resume Link</strong> that carries your answers and your 24-hour timer to any other device. At the end of Part B, a <strong>Print / Save</strong> button gives you a one-page copy of everything you wrote. Plan to use both: you will come back to the CR Path as you gain new experiences, and your earlier answers are how you will see your own growth.</p></div>
+<p>This module saves your progress as you go. <span class="resume-link-ui">When you finish Part A, you can copy a <strong>Resume Link</strong> that carries your answers and your 24-hour timer to any other device, and the confirmation email you receive after Part A carries the same link. </span>At the end of Part B, <strong>Copy My Responses as Text</strong> puts a labeled copy of everything you wrote on your clipboard, and <strong>Print / Save</strong> gives you the same record as a sheet or PDF. Use them: you will come back to the CR Path as you gain new experiences, and your earlier answers are how you will see your own growth.</p></div>
 <div class="overview-grid">
         <div class="overview-card"><h3>Estimated Time</h3><p><strong>Part A:</strong> 25-30 min<br><strong>Part B:</strong> 25-30 min<br><em>Part B unlocks 24 hours after Part A</em></p></div>
         <div class="overview-card"><h3>Format</h3><p>Asynchronous (LMS). Mobile-friendly. All videos captioned.</p></div>
@@ -342,6 +362,44 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
         </ol>
       </div>
       <div class="key-message"><p>This module is designed to be returned to. Your first pass builds the map. Each time you come back with a new experience -- a course, a project, a mentor conversation, a micro-internship -- your map gets richer and your story gets stronger.</p></div>
+
+      <div class="pass-card" id="pass-card">
+        <h3>Is this your first time walking the CR Path?</h3>
+        <div class="pass-choices">
+          <button type="button" class="pass-btn" id="pass-first">First time<small>Build your map from scratch.</small></button>
+          <button type="button" class="pass-btn" id="pass-return">I've done this before<small>In a course, Central Career Launch, or on your own.</small></button>
+        </div>
+        <div class="email-warning" id="pass-warn">Choose one to continue.</div>
+        <div class="pass-followup hidden" id="pass-followup">
+          <div><label for="prior-course">Where did you last walk it?</label>
+            <select id="prior-course" class="scorm-select" data-interaction="32">
+              <option value="">Select...</option>
+              <option value="CCL">Central Career Launch (student employment)</option>
+              <option value="PSY234">PSY 234: Industrial/Organizational Psychology</option>
+              <option value="PSY413_CLASS413">PSY/CLASS 413: College to Career Transition</option>
+              <option value="PSY215">PSY 215: Statistics</option>
+              <option value="OtherCourse">Another CCSU course</option>
+              <option value="Workshop">A workshop or event</option>
+              <option value="Self">On my own</option>
+            </select></div>
+          <div><label for="pass-number">Counting this one, which pass is this?</label>
+            <select id="pass-number" class="scorm-select" data-interaction="33">
+              <option value="">Select...</option>
+              <option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option><option value="5">5th or more</option>
+            </select></div>
+          <p style="font-size:13px;color:var(--muted);margin:0">Returning? Your earlier answers are shown above each box once you get there. If they aren't, paste them in from your saved copy or email as you go.</p>
+        </div>
+        <input type="hidden" id="first-pass" class="scorm-select" data-interaction="31" value="">
+      </div>
+
+      <div class="pass-card hidden" id="pass-done-card">
+        <h3>Pass <span id="pass-done-num">1</span> complete <span style="font-weight:400;color:var(--muted)">(submitted <span id="pass-done-date"></span>)</span></h3>
+        <p style="font-size:14px;line-height:1.6;margin-bottom:10px">Come back when you have a new experience to add. Starting the next pass keeps your map, your details, and your email, and asks you to answer the reflection questions fresh -- your last answers stay visible above each box.</p>
+        <div class="pass-choices">
+          <button type="button" class="pass-btn" id="pass-start-next">Start pass <span id="pass-next-num">2</span><small>Part A again, then the 24-hour gate, then Part B.</small></button>
+          <button type="button" class="pass-btn" id="pass-review-last">Review or print my last responses<small>Nothing changes until you start the next pass.</small></button>
+        </div>
+      </div>
     </div>
 
     <!-- PAGE 2: WELCOME & HOOK -->
@@ -370,11 +428,14 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
       <div class="section-header"><span class="section-tag">Section 0.0 - Part A</span><h1>Your Starting Point</h1><p class="time-estimate">~2 minutes</p></div>
       <div class="activity-box">
         <div class="activity-header"><span class="activity-icon">&#9999;&#65039;</span><h3>Your Starting Point</h3></div>
-        <p class="activity-purpose"><em>Why this matters: This is your "before." Each time you return with a new experience, you'll see how much your answer has changed.</em></p>
-        <p>That employer question was intense. Let's start simpler:</p>
-        <label for="response-opening"><strong>"Right now, if someone asked you what you're learning in your program, what would you say?"</strong></label>
+        <p class="activity-purpose first-only"><em>Why this matters: This is your "before." Each time you return with a new experience, you'll see how much your answer has changed.</em></p>
+        <p class="activity-purpose return-only"><em>Why this matters: This is pass <span class="pass-num">2</span>. Answer without rereading your last one first -- the distance between the two is the point.</em></p>
+        <p class="first-only">That employer question was intense. Let's start simpler:</p>
+        <p class="return-only">Same question as last time, asked fresh:</p>
+        <label for="response-opening"><strong class="first-only">"Right now, if someone asked you what you're learning in your program, what would you say?"</strong><strong class="return-only">"Since your last pass, what have you learned or done -- and what would you say now if someone asked what you're learning in your program?"</strong></label>
         <textarea id="response-opening" class="scorm-input" data-interaction="0" rows="5" placeholder="There is no right answer. Write whatever comes to mind..."></textarea>
-        <p class="activity-note">Unscored baseline -- just be honest. You'll compare this to your updated answer when you return.</p>
+        <p class="activity-note first-only">Unscored baseline -- just be honest. You'll compare this to your updated answer when you return.</p>
+        <p class="activity-note return-only">Unscored. When you're done, open "Your last answer" above and read the two side by side.</p>
       </div>
     </div>
 
@@ -472,8 +533,10 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
 
       <div class="activity-box" style="margin-top:24px">
         <div class="activity-header"><span class="activity-icon">&#128273;</span><h3>Name It to Claim It</h3></div>
-        <p class="activity-purpose"><em>Why this matters: If you can't explain it simply, you don't own it yet. When you return, you'll rewrite these -- and notice how much sharper they get.</em></p>
-        <p>You've now seen all four components. Put each one in your own words -- one sentence, no jargon. How would you explain it to a friend who's never heard of the CR Path?</p>
+        <p class="activity-purpose first-only"><em>Why this matters: If you can't explain it simply, you don't own it yet. When you return, you'll rewrite these -- and notice how much sharper they get.</em></p>
+        <p class="activity-purpose return-only"><em>Why this matters: This is the drift check. Define each one again without looking, then compare to your last answer.</em></p>
+        <p class="first-only">You've now seen all four components. Put each one in your own words -- one sentence, no jargon. How would you explain it to a friend who's never heard of the CR Path?</p>
+        <p class="return-only">One sentence each, no jargon, no peeking. If a definition got shorter and clearer since last time, that's ownership.</p>
         <label for="define-csksa"><strong>CS KSAs:</strong></label>
         <textarea id="define-csksa" class="scorm-input" data-interaction="25" rows="2" placeholder="In one sentence, what are CS KSAs?"></textarea>
         <label for="define-core"><strong>Core Competencies:</strong></label>
@@ -502,7 +565,8 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
       <div class="key-message"><p>"Your year at Central might predict where you are on this cycle -- or it might not. A senior who has never had an internship might rank ELOs lowest. A first-year who worked full-time before enrolling might rank them highest. Trust your own assessment."</p></div>
       <div class="activity-box">
         <div class="activity-header"><span class="activity-icon">&#128202;</span><h3>Component Strength Sort</h3></div>
-        <p class="activity-purpose"><em>Why this matters: This helps you and your supervisor know where to focus your development. When you return, you'll re-rank and see how your experiences have shifted the balance.</em></p>
+        <p class="activity-purpose first-only"><em>Why this matters: This helps you and your supervisor know where to focus your development. When you return, you'll re-rank and see how your experiences have shifted the balance.</em></p>
+        <p class="activity-purpose return-only"><em>Why this matters: Re-rank based on what you have now, not on what you ranked before. What moved is your evidence of growth; what didn't is your next priority.</em></p>
         <p>Rank the four CR Path components from <strong>strongest (1)</strong> to <strong>most in need of development (4)</strong>:</p>
         <div class="rank-grid">
           <div class="rank-item"><label for="rank-csksa"><strong>CS KSAs</strong> <span class="rank-desc">(career-specific knowledge from my major courses)</span></label><select id="rank-csksa" class="scorm-select" data-interaction="1"><option value="">Select rank...</option><option value="1">1 -- Strongest</option><option value="2">2</option><option value="3">3</option><option value="4">4 -- Most needs development</option></select></div>
@@ -511,8 +575,8 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
           <div class="rank-item"><label for="rank-cm"><strong>Career Mentorship</strong> <span class="rank-desc">(connection to someone doing what I want to do)</span></label><select id="rank-cm" class="scorm-select" data-interaction="4"><option value="">Select rank...</option><option value="1">1 -- Strongest</option><option value="2">2</option><option value="3">3</option><option value="4">4 -- Most needs development</option></select></div>
         </div>
         <div class="follow-up-prompts">
-          <div class="follow-up"><label for="strongest-explain"><strong>My #1 (strongest) is my strongest because:</strong></label><textarea id="strongest-explain" class="scorm-input" data-interaction="5" placeholder="In 1-2 sentences, why did you rank this first?" rows="3"></textarea></div>
-          <div class="follow-up"><label for="weakest-explain"><strong>My #4 (least developed) needs work because:</strong></label><textarea id="weakest-explain" class="scorm-input" data-interaction="6" placeholder="In 1-2 sentences, why did you rank this last?" rows="3"></textarea></div>
+          <div class="follow-up"><label for="strongest-explain"><strong class="first-only">My #1 (strongest) is my strongest because:</strong><strong class="return-only">My #1 is my strongest now because (name what changed, if anything):</strong></label><textarea id="strongest-explain" class="scorm-input" data-interaction="5" placeholder="In 1-2 sentences, why did you rank this first?" rows="3"></textarea></div>
+          <div class="follow-up"><label for="weakest-explain"><strong class="first-only">My #4 (least developed) needs work because:</strong><strong class="return-only">My #4 still needs work -- or newly needs work -- because:</strong></label><textarea id="weakest-explain" class="scorm-input" data-interaction="6" placeholder="In 1-2 sentences, why did you rank this last?" rows="3"></textarea></div>
         </div>
       </div>
     </div>
@@ -526,6 +590,7 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
       <div class="activity-box activity-box-light">
         <div class="activity-header"><span class="activity-icon">&#128203;</span><h3>About You</h3></div>
         <p class="activity-purpose"><em>This information helps us understand how students across Central experience the CR Path. It does not affect your module content.</em></p>
+        <div class="form-group name-field"><label for="learner-name">Your name (first and last):</label><input type="text" id="learner-name" class="scorm-input-short" data-interaction="34" placeholder="e.g., Jordan Rivera" autocomplete="name"></div>
         <div class="form-group"><label for="demo-year">Current year at Central:</label><select id="demo-year" class="scorm-select" data-interaction="7"><option value="">Select...</option><option value="First-Year">First-Year</option><option value="Sophomore">Sophomore</option><option value="Junior">Junior</option><option value="Senior">Senior</option><option value="Transfer">Transfer Student</option><option value="Returning Adult Learner">Returning / Adult Learner</option></select></div>
         <div class="form-group"><label for="demo-school">My school or college:</label><select id="demo-school" class="scorm-select" data-interaction="8"><option value="">Select...</option><option value="CLASS">Carol A. Ammon College of Liberal Arts &amp; Social Sciences (CLASS)</option><option value="Business">School of Business</option><option value="Education">School of Education</option><option value="Health Sciences">College of Health &amp; Rehabilitation Sciences</option><option value="SEST">School of Engineering, Science &amp; Technology</option><option value="Undeclared">Undeclared / Exploring</option></select></div>
         <div class="form-group"><label for="demo-major">My major (or intended major):</label><input type="text" id="demo-major" class="scorm-input-short" data-interaction="9" placeholder="e.g., Psychological Science, Nursing, Computer Science..."></div>
@@ -548,8 +613,17 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
     <!-- PAGE 11: PART A REVIEW -->
     <div class="page hidden" data-page="11" data-section="review-a" data-part="A">
       <div class="section-header"><span class="section-tag">Part A -- Review</span><h1>Review Before Submitting</h1></div>
-      <div class="keep-notice"><h3>&#128279; Copy your resume link before you submit</h3>
-<p>Part B unlocks 24 hours from now. If there is any chance you will come back on a <strong>different device or browser</strong> &mdash; phone instead of laptop, home instead of lab &mdash; copy this link and save it in your notes or email it to yourself. It carries your Part A answers and your timer with you. Same device, same browser? Your work is already saved here and the link is optional.</p>
+      <div class="email-capture">
+        <h4>Where should your confirmation go?</h4>
+        <p>When you submit Part A, you'll get an email with the day and time Part B unlocks<span class="resume-link-ui"> and a link that reopens this module with your answers on any device</span>. After Part B, the same address gets your complete CR Path record.</p>
+        <div class="email-row"><div class="email-field">
+          <label for="student-email">Your CCSU Email <span class="required-star" aria-hidden="true">*</span></label>
+          <input type="email" id="student-email" class="scorm-input" data-interaction="23" placeholder="yourname@my.ccsu.edu" autocomplete="email" aria-required="true" required>
+          <div class="email-warning" id="email-warn">Required. Please enter your CCSU email address.</div>
+        </div></div>
+      </div>
+      <div class="keep-notice resume-link-ui"><h3>&#128279; Coming back on a different device?</h3>
+<p>Your work is saved in this browser, and the email above will carry a resume link. If you'd rather have the link now, copy it here and keep it in your notes.</p>
 <div style="margin-top:10px"><button type="button" class="nav-btn" onclick="copyResumeLink(this)">&#128279; Copy My Resume Link</button></div></div>
 <div class="review-intro"><h3>Before you submit Part A, review what you've entered:</h3><p>You can go back and edit any response using the Back button.</p></div>
       <div class="review-section"><h4>Your Starting Point (Section 0.0)</h4><div class="review-display" id="review-opening"></div></div>
@@ -573,9 +647,10 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
         <div id="timer-locked" class="hidden">
           <h3>Part B unlocks in:</h3>
           <p id="countdown" class="countdown-text">--:--:--</p>
-          <p class="timer-note">Part B unlocks in 24 hours -- that's the minimum spacing. You can close this window and come back anytime after the timer expires.</p>
-          <div style="margin-top:14px"><button type="button" class="nav-btn" onclick="copyResumeLink(this)">&#128279; Copy My Resume Link</button>
-          <p style="font-size:12px;color:var(--muted);margin-top:6px">Coming back on a different device or browser? Paste this link there and your Part A answers and timer come with you. Save it in your notes or email it to yourself.</p></div>
+          <p class="unlock-line">Part B unlocks <strong id="unlock-at">--</strong>.</p>
+          <p class="timer-note">That's the minimum spacing. You can close this window and come back anytime after that. Check your email -- your Part A confirmation has the same time<span class="resume-link-ui"> and a link that reopens this module on any device</span>.</p>
+          <div class="resume-link-ui" style="margin-top:14px"><button type="button" class="nav-btn" onclick="copyResumeLink(this)">&#128279; Copy My Resume Link</button>
+          <p style="font-size:12px;color:var(--muted);margin-top:6px">Coming back on a different device or browser? Paste this link there and your Part A answers and timer come with you.</p></div>
         </div>
         <div id="timer-unlocked" class="hidden">
           <h3>Part B is ready!</h3>
@@ -588,7 +663,7 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
     <div class="page hidden" data-page="13" data-section="0.3" data-part="B">
       <div class="section-header"><span class="section-tag">Section 0.3 - Part B</span><h1>Your Degree Through the CR Path</h1><p class="time-estimate">~12 minutes</p></div>
       <div class="keep-notice"><h3>&#128204; Before you start Part B</h3>
-<p>On the review page at the end, two buttons matter: <strong>Print / Save Your Responses</strong> (your complete Part A + Part B record, printable or saved as a PDF) and <strong>Copy My Resume Link</strong> (carries your saved work to any device). Use both before you submit &mdash; they are how you bring this work with you the next time you return to the CR Path.</p></div>
+<p>On the review page at the end, three buttons matter: <strong>Copy My Responses as Text</strong> (a labeled copy of everything you wrote, ready to paste into your notes or an email to yourself), <strong>Print / Save Your Responses</strong> (the same record as a sheet or PDF), and <strong>Copy My Resume Link</strong> (carries your saved work to any device). Use at least one before you submit &mdash; it is how you bring this work with you the next time you return to the CR Path.</p></div>
       <div class="cr-path-diagram-container compact" id="diagram-p13">
         <img src="images/cr-path-compact.png" alt="CR Path compact diagram">
       </div>
@@ -669,7 +744,8 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
       </div>
       <div class="activity-box">
         <div class="activity-header"><span class="activity-icon">&#128506;&#65039;</span><h3>Build Your CR Path Map</h3></div>
-        <p class="activity-purpose"><em>Why this matters: This is your career readiness inventory. Each time you return with a new experience, you'll add to it -- and watch the gaps fill in.</em></p>
+        <p class="activity-purpose first-only"><em>Why this matters: This is your career readiness inventory. Each time you return with a new experience, you'll add to it -- and watch the gaps fill in.</em></p>
+        <p class="activity-purpose return-only"><em>Why this matters: Your last map is already here. Add what's new. Keep what still holds. Fix what was vague.</em></p>
         <p>For each component, write: (1) your experience or course, (2) what you learned or gained, (3) in plain language, why might this matter to someone hiring you?</p>
         <p class="note-text">If a row feels empty -- that's important information, not a failure. That empty row is where your next experience should go.</p>
         <div class="mapping-table">
@@ -690,7 +766,8 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
       </div>
       <div class="activity-box">
         <div class="activity-header"><span class="activity-icon">&#9999;&#65039;</span><h3>The Career Readiness Question</h3></div>
-        <p class="activity-purpose"><em>Why this matters: This is practice. Each time you come back with a new experience, you'll rewrite this -- and watch it get stronger, more specific, and more yours.</em></p>
+        <p class="activity-purpose first-only"><em>Why this matters: This is practice. Each time you come back with a new experience, you'll rewrite this -- and watch it get stronger, more specific, and more yours.</em></p>
+        <p class="activity-purpose return-only"><em>Why this matters: Rewrite it with your new evidence. Don't reread your last answer until you've finished -- then open it and compare.</em></p>
         <p>Using what you've learned in this module, write a response to the following question as if you were answering it in an informational interview or advising appointment:</p>
         <div class="prompt-highlight"><p><strong>"How has your degree prepared you for your career -- or for the next step toward it?"</strong></p></div>
         <p>Reference at least two CR Path components in your response. You don't need to use technical language -- write the way you'd actually talk to someone.</p>
@@ -712,7 +789,7 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
     <!-- PAGE 16: THE ITERATION CYCLE -->
     <div class="page hidden" data-page="16" data-section="0.5" data-part="B">
       <div class="section-header"><span class="section-tag">Section 0.5 - Part B</span><h1>The Iteration Cycle</h1><p class="time-estimate">~5 minutes</p></div>
-      <div class="key-message"><p>"You've just completed your first pass around the CR Path. This isn't the last time you'll be here. Every time you have a meaningful experience -- a course that clicks, a project that challenges you, a conversation that opens a door -- you'll come back and your map will grow."</p></div>
+      <div class="key-message"><p><span class="return-only">"You've just completed another pass around the CR Path -- and the comparison is the payoff. </span><span class="first-only">"You've just completed your first pass around the CR Path. This isn't the last time you'll be here. Every time you have a meaningful experience -- a course that clicks, a project that challenges you, a conversation that opens a door -- you'll come back and your map will grow."</p></div>
 
       <div class="iteration-section">
         <h2>What Counts as a CR Path Experience?</h2>
@@ -744,7 +821,7 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
       <div class="return-instructions">
         <h3>When You Return: How to Update Your Map</h3>
         <ol>
-          <li><strong>Reopen this module</strong> -- your previous responses will still be there, pre-filled and waiting.</li>
+          <li><strong>Reopen this module.</strong> If you are on the same device and browser you used last time -- or inside the same Blackboard course -- your answers will still be here. If not, open your saved copy (the text you copied, the email, or the PDF) and paste each answer back into the field with the same label. The text copy is labeled in the same order as these pages, so this takes a couple of minutes.</li>
           <li><strong>Navigate to your CR Path Map</strong> (Section 0.3) and add your new experience to the appropriate component row. Update what you wrote -- make it more specific, more confident, more real.</li>
           <li><strong>Re-rank your Component Strength Sort</strong> (Section 0.2). Has anything shifted? Did your #4 move up? Did a new gap reveal itself?</li>
           <li><strong>Rewrite your Baseline Reflection</strong> (Section 0.4). Answer the same question again with your new evidence. Watch how much stronger your answer is.</li>
@@ -767,12 +844,12 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
     <!-- PAGE 17: PART B REVIEW + EMAIL (UPDATED) -->
     <div class="page hidden" data-page="17" data-section="review-b" data-part="B">
       <div class="section-header"><span class="section-tag">Part B -- Review</span><h1>Review Before Submitting</h1></div>
-      <div class="keep-notice"><h3>&#9888;&#65039; Two buttons below. Use both before you submit.</h3>
-<p><strong>Print / Save Your Responses</strong> gives you a one-page copy of everything you wrote in Part A and Part B. Choose &ldquo;Save as PDF&rdquo; in the print window to keep a digital copy. <strong>Copy My Resume Link</strong> puts a private link on your clipboard that carries your saved answers to any other device or browser. You will return to the CR Path with new experiences &mdash; these two buttons are how your past self hands your work to your future self. Save both somewhere you will find them.</p></div>
+      <div class="keep-notice"><h3>&#9888;&#65039; Save a copy before you submit. Three ways below.</h3>
+<p><strong>Copy My Responses as Text</strong> puts a labeled, plain-text copy of everything you wrote in Part A and Part B on your clipboard. Paste it into your notes, a document, or an email to yourself. This is the easiest one to bring back: when you return, you paste each answer into the field with the same label. <strong>Print / Save Your Responses</strong> gives you the same record as a printable sheet &mdash; choose &ldquo;Save as PDF&rdquo; to keep a digital copy. <strong>Copy My Resume Link</strong> puts a private link on your clipboard that carries your saved answers to another device or browser. You will return to the CR Path with new experiences &mdash; this is how your past self hands your work to your future self.</p></div>
 <div class="review-intro"><h3>Before you submit, review what you've entered in Part B:</h3><p>You can go back and edit any response using the Back button.</p></div>
       <div class="review-section"><h4>Your CR Path Map (Section 0.3)</h4><div class="review-display" id="review-map"></div></div>
       <div class="review-section"><h4>Baseline Reflection (Section 0.4)</h4><div class="review-display" id="review-baseline"></div></div>
-      <div style="text-align:right;margin:6px 0 14px"><button type="button" class="nav-btn print-btn" onclick="printReview()">&#128424;&#65039; Print / Save Your Responses</button><button type="button" class="nav-btn" style="margin-left:8px" onclick="copyResumeLink(this)">&#128279; Copy My Resume Link</button><p style="font-size:12px;color:var(--muted);margin-top:4px">Prints your complete Module 0 record, Part A and Part B, on one sheet &mdash; or choose &ldquo;Save as PDF.&rdquo; You&rsquo;ll want it the next time you return to the CR Path.</p></div>
+      <div class="save-actions"><button type="button" class="nav-btn primary copy-text-btn" onclick="copyResponsesText(this)">&#128203; Copy My Responses as Text</button><button type="button" class="nav-btn print-btn" onclick="printReview()">&#128424;&#65039; Print / Save Your Responses</button><button type="button" class="nav-btn resume-link-ui" onclick="copyResumeLink(this)">&#128279; Copy My Resume Link</button><p style="font-size:12px;color:var(--muted);margin-top:6px;flex-basis:100%">All three cover your complete Module 0 record, Part A and Part B. You&rsquo;ll want it the next time you return to the CR Path.</p></div>
       <span class="print-header-line">CR Path &mdash; Module 0 &mdash; My Responses &mdash; printed from the review page. Keep this for your next pass.</span>
       <div class="email-capture">
         <h4>Get a Copy of Your Responses</h4>
@@ -780,8 +857,8 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
         <div class="email-row">
           <div class="email-field">
             <label for="student-email">Your CCSU Email <span class="required-star" aria-hidden="true">*</span></label>
-            <input type="email" id="student-email" class="scorm-input" data-interaction="23" placeholder="yourname@my.ccsu.edu" autocomplete="email" aria-required="true" required>
-            <div class="email-warning" id="email-warn">Required. Please enter your CCSU email address.</div>
+            <input type="email" id="student-email-b" placeholder="yourname@my.ccsu.edu" autocomplete="email" aria-required="true" required>
+            <div class="email-warning" id="email-warn-b">Required. Please enter your CCSU email address.</div>
           </div>
           <div class="email-field">
             <label for="mentor-email">Share with a Supervisor, Advisor, or Mentor (optional)</label>
@@ -798,8 +875,9 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
       <div class="section-header"><span class="section-tag">Module 0 Complete</span><h1>Module 0: Complete</h1></div>
       <div class="completion-card final">
         <div class="check-icon">&#127881;</div>
-        <h2>Your first pass is done.</h2>
-        <p>Your responses have been saved. You've completed your first pass around the CR Path.</p>
+        <h2><span class="first-only">Your first pass is done.</span><span class="return-only">Pass <span class="pass-done-n">2</span> is done.</span></h2>
+        <p class="first-only">Your responses have been saved. You've completed your first pass around the CR Path.</p>
+        <p class="return-only">Your responses have been saved as a new record. Open your last pass and this one side by side -- the confirmation email has both if you used the same address.</p>
         <p style="font-weight:700;color:var(--navy);margin-top:10px">Now go have an experience. Then come back.</p>
       </div>
       <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:22px;margin-top:20px">
@@ -813,7 +891,9 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
           <li style="margin-bottom:7px;font-size:14px">You lead something -- even informally</li>
           <li style="font-size:14px">You practice a Core Competency under pressure and notice it</li>
         </ul>
-        <p style="font-size:14px;line-height:1.6;margin-top:14px"><strong>When that happens:</strong> Reopen this module. Update your map. Rewrite your reflection. Submit again. Watch your story grow.</p>
+        <p style="font-size:14px;line-height:1.6;margin-top:14px"><strong>When that happens:</strong> Reopen this module. If your answers aren&rsquo;t already here, paste them in from your saved copy. Update your map. Rewrite your reflection. Submit again. Watch your story grow.</p>
+        <p style="font-size:14px;line-height:1.6;margin-top:12px"><strong>Haven&rsquo;t saved a copy yet?</strong> Do it now &mdash; you can&rsquo;t come back to this page later.</p>
+        <div class="save-actions" style="margin-top:8px"><button type="button" class="nav-btn primary copy-text-btn" onclick="copyResponsesText(this)">&#128203; Copy My Responses as Text</button><button type="button" class="nav-btn print-btn" onclick="printReview()">&#128424;&#65039; Print / Save Your Responses</button></div>
       </div>
       <div class="summary-stats" style="margin-top:20px">
         <p><strong>Responses saved:</strong> <span id="total-responses">0</span></p>
@@ -838,19 +918,11 @@ note-text{font-size:13px;color:var(--muted);font-style:italic;margin-top:8px}
 function toggleContent(id){var e=document.getElementById(id);if(e)e.classList.toggle('hidden');}
 </script>
 
+<script src="js/crpath-shared.js"></script>
 <script>
 (function(){
   // Resume-link seeder: #s=<base64url JSON> restores saved state onto this device, then strips the hash.
-  try {
-    var h = location.hash;
-    if (h && h.indexOf('#s=') === 0) {
-      var b64 = h.slice(3).replace(/-/g,'+').replace(/_/g,'/');
-      var json = decodeURIComponent(escape(atob(b64)));
-      JSON.parse(json); // validate before writing
-      localStorage.setItem('scorm_cmi.suspend_data', json);
-      history.replaceState(null, '', location.pathname + location.search);
-    }
-  } catch(e) { /* malformed link: ignore, module starts fresh */ }
+  CRShared.resume.seedFromHash('scorm_cmi.suspend_data');
 
   // Framebuster: only when framed AND no LMS SCORM API anywhere above us.
   // Inside a real SCORM player (API present) we stand down, so this file stays dual-use.
@@ -882,61 +954,67 @@ function toggleContent(id){var e=document.getElementById(id);if(e)e.classList.to
 
 <div id="print-sheet" aria-hidden="true"></div>
 <script>
-function printReview(){
-  // Build the full A+B record from the live inputs (restored from saved state on load),
-  // mirroring app.js review mappings. Keeps app.js untouched.
+// Build the full Part A+B record from the live inputs (restored from saved state on load),
+// mirroring app.js review mappings. Keeps app.js untouched.
+function buildResponseRecord(){
   var r = {};
   document.querySelectorAll('.scorm-input, .scorm-input-short, .scorm-select').forEach(function(el){
     var id = el.getAttribute('data-interaction');
     if (id !== null) { var v = (el.value || '').trim(); if (v) r[id] = v; }
   });
-  function sec(title, body){
-    return '<div class="ps-sec"><h4>' + title + '</h4><div class="ps-body">' + (body || '[No response entered]').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>') + '</div></div>';
-  }
   var comps = ['CS KSAs','Core Competencies','ELOs','Career Mentorship'];
-  var defs = '';
-  [[25,'CS KSAs'],[26,'Core Competencies'],[27,'ELOs'],[28,'Career Mentorship']].forEach(function(p){ if (r[p[0]]) defs += p[1] + ': ' + r[p[0]] + '\n'; });
-  var ranks = ''; for (var i=1;i<=4;i++){ if (r[i]) ranks += comps[i-1] + ': Rank ' + r[i] + '\n'; }
-  var demo = '';
-  if (r[7]) demo += 'Year: ' + r[7] + '\n';
-  if (r[8]) demo += 'School: ' + r[8] + '\n';
-  if (r[9]) demo += 'Major: ' + r[9] + '\n';
-  var map = '';
-  [{n:'CS KSAs',s:10},{n:'Core Competencies',s:13},{n:'ELOs',s:16},{n:'Career Mentorship',s:19}].forEach(function(row){
-    map += '--- ' + row.n + ' ---\n';
-    map += 'Experience: ' + (r[row.s] || '[empty]') + '\n';
-    map += 'Learned: ' + (r[row.s+1] || '[empty]') + '\n';
-    map += 'Why it matters: ' + (r[row.s+2] || '[empty]') + '\n\n';
-  });
+  var E = '[empty]';
+  function kv(pairs){ return pairs.map(function(p){ return p[0] + ': ' + (p[1] || E); }).join('\n'); }
+  var courseSearch = document.getElementById('course-search');
+  var courseText = (r[29] === 'Other') ? ('Other' + (r[30] ? ' (' + r[30] + ')' : ''))
+                 : ((courseSearch && courseSearch.value) ? courseSearch.value : (r[29] || ''));
+  var mapText = [{n:'CS KSAs',s:10},{n:'Core Competencies',s:13},{n:'ELOs',s:16},{n:'Career Mentorship',s:19}].map(function(row){
+    return row.n + '\n' + kv([['  Experience', r[row.s]], ['  Learned', r[row.s+1]], ['  Why it matters', r[row.s+2]]]);
+  }).join('\n\n');
+  return {
+    partA: [
+      ['Your Starting Point -- Section 0.0', r[0] || E],
+      ['Name It to Claim It -- Section 0.1', kv([['CS KSAs', r[25]], ['Core Competencies', r[26]], ['ELOs', r[27]], ['Career Mentorship', r[28]]])],
+      ['Component Strength Sort -- Section 0.2', kv([['CS KSAs', r[1]], ['Core Competencies', r[2]], ['ELOs', r[3]], ['Career Mentorship', r[4]]]) + '\n' + kv([['Strongest -- why', r[5]], ['Least developed -- why', r[6]]])],
+      ['About You', kv([['Name', r[34]], ['Year', r[7]], ['School', r[8]], ['Major', r[9]], ['Course', courseText], ['CR Path pass', r[31] === 'no' ? (r[33] || '2') : (r[31] === 'yes' ? '1' : '')]])]
+    ],
+    partB: [
+      ['CR Path Map -- Section 0.3', mapText],
+      ['Baseline Reflection -- Section 0.4', r[22] || E]
+    ]
+  };
+}
+function responseRecordAsText(){
+  var rec = buildResponseRecord();
+  var d = new Date();
+  var lines = [
+    'CR PATH -- MODULE 0 -- MY RESPONSES',
+    'Saved: ' + d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}),
+    'When you return: paste each answer back into the field with the same label.',
+    '', '===== PART A =====', ''
+  ];
+  rec.partA.forEach(function(sec){ lines.push('[' + sec[0] + ']', sec[1], ''); });
+  lines.push('===== PART B =====', '');
+  rec.partB.forEach(function(sec){ lines.push('[' + sec[0] + ']', sec[1], ''); });
+  return lines.join('\n');
+}
+function printReview(){
+  var rec = buildResponseRecord();
+  function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function sec(title, body){ return '<div class="ps-sec"><h4>' + esc(title) + '</h4><div class="ps-body">' + esc(body) + '</div></div>'; }
   var html = '<div class="ps-title">CR Path &mdash; Module 0 &mdash; My Complete Responses</div>'
-    + '<div class="ps-note">Printed from the review page. Keep this for your next pass on the CR Path.</div>'
-    + '<h3>Part A</h3>'
-    + sec('Your Starting Point (Section 0.0)', r[0])
-    + sec('Name It to Claim It (Section 0.1)', defs)
-    + sec('Component Strength Sort (Section 0.2)', ranks)
-    + sec('Strongest &mdash; Your Explanation', r[5])
-    + sec('Least Developed &mdash; Your Explanation', r[6])
-    + sec('About You', demo)
-    + '<h3>Part B</h3>'
-    + sec('Your CR Path Map (Section 0.3)', map)
-    + sec('Baseline Reflection (Section 0.4)', r[22]);
+    + '<div class="ps-note">Printed from the review page. Keep this for your next pass on the CR Path. When you return, paste each answer back into the field with the same label.</div>'
+    + '<h3>Part A</h3>' + rec.partA.map(function(p){ return sec(p[0], p[1]); }).join('')
+    + '<h3>Part B</h3>' + rec.partB.map(function(p){ return sec(p[0], p[1]); }).join('');
   document.getElementById('print-sheet').innerHTML = html;
   document.body.classList.add('print-full-record');
   window.print();
   setTimeout(function(){ document.body.classList.remove('print-full-record'); }, 500);
 }
-function copyResumeLink(btn){
-  var json = localStorage.getItem('scorm_cmi.suspend_data') || '{}';
-  var b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  var url = location.origin + location.pathname + '#s=' + b64;
-  function done(ok){
-    if (btn){ var t0 = btn.textContent; btn.textContent = ok ? '\u2713 Link copied' : t0; setTimeout(function(){ btn.textContent = t0; }, 2500); }
-    if (!ok){ window.prompt('Copy your resume link:', url); }
-  }
-  if (navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(url).then(function(){ done(true); }, function(){ done(false); });
-  } else { done(false); }
+function copyResponsesText(btn){
+  CRShared.copyToClipboard(responseRecordAsText(), btn, '\u2713 Copied \u2014 now paste it somewhere safe', 'Copy your responses');
 }
+function copyResumeLink(btn){ CRShared.resume.copy(btn, 'scorm_cmi.suspend_data'); }
 </script>
 </body>
 </html>

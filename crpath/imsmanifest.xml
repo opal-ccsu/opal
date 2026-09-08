@@ -26,6 +26,7 @@
   <resources>
     <resource identifier="res_1" type="webcontent" adlcp:scormType="sco" href="index.html">
       <file href="index.html"/>
+      <file href="js/crpath-shared.js"/>
       <file href="js/scorm-wrapper.js"/>
       <file href="js/app.js"/>
       <file href="images/cr-path-full.png"/>

@@ -1,5 +1,17 @@
 /**
  * Module 0: CR Path -- Application Logic
+ * v2.5 (2026-09-08) -- Website + second-pass build. Requires js/crpath-shared.js.
+ *   - Pass question on page 1 (first time / been here before); returner language on the
+ *     Starting Point, Name It, Strength Sort, Map, Baseline, iteration and completion pages
+ *   - Second pass: fresh-answer fields are cleared, last pass shown read-only above them
+ *   - Email captured at the Part A review; Part A now posts to Qualtrics (submission_part = A)
+ *     with the Part B unlock time and a resume link, so the confirmation email can carry both
+ *   - Per-page time-on-task (page_times JSON, part_a_seconds, part_b_seconds)
+ *   - Name field (learner_name falls back to it on the website, where there is no LMS)
+ *   - Resume Link UI hidden inside an LMS (it is inert there); countdown recomputes from the clock
+ *   - Dictation button on long-answer boxes where the browser supports it
+ *   - CONFIG.demo = true builds a [DEMO] copy: nothing saved, nothing sent, gate open
+ *   Kept on purpose: duplicate ranks allowed, plaintext override code, 24-hour gate on every pass.
  * v2.4 -- Searchable course dropdown + instructor auto-routing
  *   - INSTRUCTOR_MAP: single source of truth for all courses
  *   - Searchable dropdown replaces <select> for course selection
@@ -20,9 +32,12 @@
     partALastPage: 11,
     gatePageNumber: 12,
     partBFirstPage: 13,
-    timerDuration: 86400000,
+    timerDuration: 86400000,     // set to 0 automatically in the [DEMO] copy
     overrideCode: 'CRPATH2026',
     qualtricsUrl: 'https://ccsu.qualtrics.com/jfe/form/SV_1LkEtj4djLa56js',
+    postKeepMs: 60000,
+    demo: false,                 // true in the [DEMO] copy: no storage, no Qualtrics, gate open
+    storageKey: 'scorm_cmi.suspend_data',   // localStorage key the wrapper uses on the website
     interactionMap: {
       0:'opening_response',1:'rank_csksa',2:'rank_core',3:'rank_elo',4:'rank_cm',
       5:'explain_strongest',6:'explain_weakest',7:'demo_year',8:'demo_school',9:'demo_major',
@@ -32,9 +47,13 @@
       19:'map_cm_experience',20:'map_cm_learned',21:'map_cm_relevance',
       22:'baseline_reflection',23:'student_email',24:'mentor_email',
       25:'define_csksa',26:'define_core',27:'define_elo',28:'define_cm',
-      29:'course_section',30:'course_other'
+      29:'course_section',30:'course_other',
+      31:'first_pass',32:'prior_course_section',33:'pass_number',34:'learner_name_field'
     }
   };
+  if (CONFIG.demo) CONFIG.timerDuration = 0;
+  // Fields a returner answers fresh (last pass shown read-only above them). Everything else stays prefilled.
+  var FRESH_FIELDS = [0, 1, 2, 3, 4, 5, 6, 22, 25, 26, 27, 28];
 
   // ============================================================
   // INSTRUCTOR MAP -- Single source of truth
@@ -138,6 +157,10 @@
     overrideUsed: false,
     partBSubmittedOnce: false,
     partBTimestamp: null,
+    partAPosted: false,
+    detectedPasses: 0,       // Part B submissions recorded in this saved state
+    lastPass: null,          // { ts, responses } snapshot of the most recent completed pass
+    pageTimes: {},           // page number -> seconds on task (across visits)
     responses: {},
     timerInterval: null
   };
@@ -192,6 +215,10 @@
       state.overrideUsed       = saved.overrideUsed   || false;
       state.partBSubmittedOnce = saved.partBSubmittedOnce || false;
       state.partBTimestamp     = saved.partBTimestamp || null;
+      state.partAPosted        = saved.partAPosted    || false;
+      state.detectedPasses     = parseInt(saved.detectedPasses, 10) || (saved.partBSubmittedOnce ? 1 : 0);
+      state.lastPass           = saved.lastPass       || null;
+      state.pageTimes          = saved.pageTimes      || {};
       state.responses          = saved.responses      || {};
     }
     restoreResponses();
@@ -199,6 +226,7 @@
 
   function saveState() {
     state.responses = collectAllResponses();
+    CRShared.timer.flush();
     SCORM.setSuspendData({
       currentPage:        state.currentPage,
       maxPageReached:     state.maxPageReached,
@@ -208,6 +236,10 @@
       overrideUsed:       state.overrideUsed,
       partBSubmittedOnce: state.partBSubmittedOnce,
       partBTimestamp:     state.partBTimestamp,
+      partAPosted:        state.partAPosted,
+      detectedPasses:     state.detectedPasses,
+      lastPass:           state.lastPass,
+      pageTimes:          state.pageTimes,
       responses:          state.responses
     });
     SCORM.setLocation(state.currentPage);
@@ -286,9 +318,12 @@
       updateProgressBar();
       updateSidebarLinks(pageNum);
       updateDiagramImage(pageNum);
+      CRShared.stopDictation();
+      CRShared.timer.switchTo(pageNum, state.pageTimes);
+      if (pageNum === 1)                      renderPassCard();
       if (pageNum === CONFIG.gatePageNumber)  handleTimerPage();
       if (pageNum === CONFIG.partALastPage)   populatePartAReview();
-      if (pageNum === 17)                     populatePartBReview();
+      if (pageNum === 17)                     { populatePartBReview(); syncEmailMirror(); }
       if (pageNum === CONFIG.totalPages)      populateFinalStats();
 
       saveState();
@@ -297,13 +332,155 @@
   }
 
   window.goToPage = function(pageNum) {
-    if (pageNum <= state.maxPageReached) {
+    if (CONFIG.demo || pageNum <= state.maxPageReached) {          // demo: every page reachable
       goToPage(pageNum);
     }
   };
 
   function nextPage() {
+    if (state.currentPage === 1 && !getField(31) && !CONFIG.demo) {
+      var w = document.getElementById('pass-warn');
+      if (w) w.classList.add('visible');
+      var card = document.getElementById('pass-card');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     if (state.currentPage < CONFIG.totalPages) goToPage(state.currentPage + 1);
+  }
+
+  // ============================================================
+  // PASS HANDLING (first time vs. returner)
+  // ============================================================
+  function getField(id) {
+    var el = document.querySelector('[data-interaction="' + id + '"]');
+    return el ? (el.value || '').trim() : '';
+  }
+  function setField(id, val) {
+    var el = document.querySelector('[data-interaction="' + id + '"]');
+    if (el) el.value = val;
+  }
+  function currentMode() { return getField(31) === 'no' ? 'return' : 'first'; }
+  function applyMode() {
+    var mode = currentMode();
+    document.body.classList.toggle('mode-return', mode === 'return');
+    document.body.classList.toggle('mode-first',  mode !== 'return');
+    var yes = document.getElementById('pass-first'), no = document.getElementById('pass-return');
+    if (yes) yes.classList.toggle('selected', getField(31) === 'yes');
+    if (no)  no.classList.toggle('selected',  getField(31) === 'no');
+    var follow = document.getElementById('pass-followup');
+    if (follow) follow.classList.toggle('hidden', mode !== 'return');
+    var n = parseInt(getField(33), 10) || 0;
+    document.querySelectorAll('.pass-num').forEach(function (el) { el.textContent = n ? String(n) : '2'; });
+  }
+  function choosePass(answer) {
+    setField(31, answer);
+    var w = document.getElementById('pass-warn'); if (w) w.classList.remove('visible');
+    if (answer === 'no' && !getField(33)) setField(33, String(Math.max(2, state.detectedPasses + 1)));
+    if (answer === 'yes') { setField(32, ''); setField(33, '1'); }
+    applyMode();
+    saveState();
+  }
+  window.choosePass = choosePass;
+
+  /* Page 1: the "Pass N complete" card for a saved, finished state; the pass question otherwise. */
+  function renderPassCard() {
+    var done = document.getElementById('pass-done-card');
+    var ask  = document.getElementById('pass-card');
+    var finished = state.partBSubmittedOnce && state.partASubmitted;
+    if (done) done.classList.toggle('hidden', !finished);
+    if (ask)  ask.classList.toggle('hidden', finished);
+    if (finished && done) {
+      var when = state.partBTimestamp ? new Date(state.partBTimestamp).toLocaleDateString() : '';
+      var n = document.getElementById('pass-done-num'); if (n) n.textContent = String(state.detectedPasses || 1);
+      var d = document.getElementById('pass-done-date'); if (d) d.textContent = when;
+      var nx = document.getElementById('pass-next-num'); if (nx) nx.textContent = String((state.detectedPasses || 1) + 1);
+    }
+    applyMode();
+  }
+
+  /* Start a new pass on top of a completed one: keep the map, demographics and email; clear the
+     fresh-answer fields; the last pass stays available read-only above each cleared field. */
+  function startNewPass() {
+    if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+    var r = collectAllResponses();
+    if (!state.lastPass || (state.partBTimestamp && state.lastPass.ts !== state.partBTimestamp)) {
+      state.lastPass = { ts: state.partBTimestamp || Date.now(), responses: r };
+    }
+    FRESH_FIELDS.forEach(function (id) { setField(id, ''); });
+    setField(31, 'no');
+    setField(33, String((state.detectedPasses || 1) + 1));
+    if (!getField(32) && r[29]) setField(32, r[29]);
+    state.partASubmitted = false;
+    state.partATimestamp = null;
+    state.partBUnlocked  = false;
+    state.overrideUsed   = false;
+    state.partAPosted    = false;
+    state.partBTimestamp = null;
+    state.maxPageReached = 1;
+    renderPreviousAnswers();
+    var wc = document.getElementById('word-count-display'); if (wc) wc.textContent = '0';
+    saveState();
+    goToPage(1);
+    applyMode();
+  }
+  window.startNewPass = startNewPass;
+
+  /* Read-only "Your last answer" block above each fresh field when a previous pass exists. */
+  function renderPreviousAnswers() {
+    document.querySelectorAll('.prev-answer').forEach(function (el) { el.parentNode.removeChild(el); });
+    if (!state.lastPass || !state.lastPass.responses) return;
+    var when = new Date(state.lastPass.ts).toLocaleDateString();
+    var RANK_LABEL = { 1: 'CS KSAs', 2: 'Core Competencies', 3: 'ELOs', 4: 'Career Mentorship' };
+    var rankText = '';
+    for (var k = 1; k <= 4; k++) { if (state.lastPass.responses[k]) rankText += RANK_LABEL[k] + ': ' + state.lastPass.responses[k] + '   '; }
+    FRESH_FIELDS.forEach(function (id) {
+      if (id >= 1 && id <= 4) return;            // ranks get one combined block (below)
+      var val = state.lastPass.responses[id];
+      if (!val) return;
+      var el = document.querySelector('[data-interaction="' + id + '"]');
+      if (!el) return;
+      var d = document.createElement('details'); d.className = 'prev-answer';
+      var sm = document.createElement('summary'); sm.textContent = 'Your last answer (' + when + ')';
+      var body = document.createElement('div'); body.className = 'prev-answer-body'; body.textContent = val;
+      d.appendChild(sm); d.appendChild(body);
+      el.parentNode.insertBefore(d, el);
+    });
+    if (rankText) {
+      var grid = document.querySelector('.rank-grid');
+      if (grid) {
+        var d2 = document.createElement('details'); d2.className = 'prev-answer';
+        var sm2 = document.createElement('summary'); sm2.textContent = 'Your last ranking (' + when + ')';
+        var b2 = document.createElement('div'); b2.className = 'prev-answer-body'; b2.textContent = rankText.trim();
+        d2.appendChild(sm2); d2.appendChild(b2);
+        grid.parentNode.insertBefore(d2, grid);
+      }
+    }
+  }
+
+  /* Page 17 shows a mirror of the page-11 email field so it can still be corrected before Part B is sent. */
+  function syncEmailMirror() {
+    var real = document.getElementById('student-email'), mirror = document.getElementById('student-email-b');
+    if (real && mirror) mirror.value = real.value;
+  }
+  function bindEmailMirror() {
+    var real = document.getElementById('student-email'), mirror = document.getElementById('student-email-b');
+    if (!real || !mirror) return;
+    mirror.addEventListener('input', function () { real.value = mirror.value; real.dispatchEvent(new Event('input', { bubbles: true })); });
+  }
+  function bindPassChoice() {
+    var yes = document.getElementById('pass-first'), no = document.getElementById('pass-return');
+    if (yes) yes.addEventListener('click', function () { choosePass('yes'); });
+    if (no)  no.addEventListener('click',  function () { choosePass('no'); });
+    var sel32 = document.querySelector('[data-interaction="32"]'), sel33 = document.querySelector('[data-interaction="33"]');
+    if (sel32) sel32.addEventListener('change', function () { saveState(); });
+    if (sel33) sel33.addEventListener('change', function () { applyMode(); saveState(); });
+    var startBtn = document.getElementById('pass-start-next');
+    if (startBtn) startBtn.addEventListener('click', startNewPass);
+    var reviewBtn = document.getElementById('pass-review-last');
+    if (reviewBtn) reviewBtn.addEventListener('click', function () { goToPage(17); });
+    // ?pass=2 (or any number) pre-answers the question for links placed on purpose
+    var m = /[?&]pass=(\d+)/.exec(location.search);
+    if (m && !getField(31)) { setField(31, parseInt(m[1], 10) > 1 ? 'no' : 'yes'); if (parseInt(m[1], 10) > 1) setField(33, m[1]); }
   }
 
   function prevPage() {
@@ -390,6 +567,8 @@
     }
 
     var r = collectAllResponses();
+    if (!checkStudentEmail(r, 'email-warn', 'student-email')) { saveState(); return; }
+
     state.responses      = r;
     state.partASubmitted = true;
     state.partATimestamp = Date.now();
@@ -413,9 +592,32 @@
     if (r[30]) {
       SCORM.setInteraction(30, CONFIG.interactionMap[30], 'long_fill_in', r[30]);
     }
+    [31, 32, 33, 34].forEach(function (i) {
+      if (r[i]) SCORM.setInteraction(i, CONFIG.interactionMap[i], i === 34 ? 'long_fill_in' : 'choice', r[i]);
+    });
 
+    saveState();                       // state must be saved before the resume link is built
+    sendToQualtrics(r, 'A');
+    state.partAPosted = true;
     saveState();
     goToPage(CONFIG.gatePageNumber);
+  }
+
+  /* Student email lives on the Part A review page (interaction 23) and is mirrored on the Part B review. */
+  function checkStudentEmail(r, warnId, focusId) {
+    if (CONFIG.demo) return true;                       // nothing is sent, so nothing to validate
+    var warn = document.getElementById(warnId);
+    var studentEmail = (r[23] || '').trim();
+    if (warn) warn.classList.remove('visible');
+    var msg = '';
+    if (!studentEmail) msg = 'Required. Please enter your CCSU email address.';
+    else if (!validateEmail(studentEmail)) msg = 'Please enter a valid email address.';
+    if (msg) {
+      if (warn) { warn.textContent = msg; warn.classList.add('visible'); }
+      var f = document.getElementById(focusId); if (f) f.focus();
+      return false;
+    }
+    return true;
   }
 
   // ============================================================
@@ -428,39 +630,15 @@
     var r = collectAllResponses();
     state.responses = r;
 
-    var emailWarn  = document.getElementById('email-warn');
     var mentorWarn = document.getElementById('mentor-warn');
-    emailWarn.classList.remove('visible');
-    mentorWarn.classList.remove('visible');
-
-    var studentEmail = (r[23] || '').trim();
-    var mentorEmail  = (r[24] || '').trim();
-
-    var emailOk  = validateEmail(studentEmail);
-    var mentorOk = mentorEmail ? validateEmail(mentorEmail) : true;
-    var hasInvalidEmail = false;
-
-    if (!studentEmail) {
-      emailWarn.textContent = 'Required. Please enter your CCSU email address.';
-      emailWarn.classList.add('visible');
-      document.getElementById('student-email').focus();
-      hasInvalidEmail = true;
-    } else if (!emailOk) {
-      emailWarn.textContent =
-        'Please enter a valid CCSU email address.';
-      emailWarn.classList.add('visible');
-      document.getElementById('student-email').focus();
+    if (mentorWarn) mentorWarn.classList.remove('visible');
+    var mentorEmail = (r[24] || '').trim();
+    var hasInvalidEmail = !checkStudentEmail(r, 'email-warn-b', 'student-email-b');
+    if (mentorEmail && !validateEmail(mentorEmail)) {
+      if (mentorWarn) mentorWarn.classList.add('visible');
+      if (!hasInvalidEmail) document.getElementById('mentor-email').focus();
       hasInvalidEmail = true;
     }
-
-    if (mentorEmail && !mentorOk) {
-      mentorWarn.classList.add('visible');
-      if (!hasInvalidEmail) {
-        document.getElementById('mentor-email').focus();
-      }
-      hasInvalidEmail = true;
-    }
-
     if (hasInvalidEmail) {
       submitBtn.disabled = false;
       saveState();
@@ -473,13 +651,14 @@
       }
     }
 
-    sendToQualtrics(r);
-
-    SCORM.setScore();
-
     state.partBSubmittedOnce = true;
     state.partBTimestamp     = Date.now();
+    state.detectedPasses     = (state.detectedPasses || 0) + 1;
+    state.lastPass           = { ts: state.partBTimestamp, responses: r };
 
+    saveState();                       // save first so the resume link carries the completed pass
+    sendToQualtrics(r, 'B');
+    SCORM.setScore();
     saveState();
     goToPage(CONFIG.totalPages);
 
@@ -493,25 +672,47 @@
   // ============================================================
   // QUALTRICS -- hidden form POST via iframe
   // ============================================================
-  function sendToQualtrics(r) {
+  function sendToQualtrics(r, part) {
+    if (CONFIG.demo) { console.log('[CR Path DEMO] Qualtrics post skipped (' + part + ').'); return; }
     var learner_id   = '';
     var learner_name = '';
     try {
       learner_id   = SCORM.getLearnerID()   || '';
       learner_name = SCORM.getLearnerName() || '';
     } catch (e) {}
+    if (!learner_name && r[34]) learner_name = r[34];       // website: the name field stands in for the LMS
+    var inLMS = CRShared.isLMS();
+    var unlock = state.partATimestamp ? CRShared.formatUnlock(state.partATimestamp + CONFIG.timerDuration) : { text: '', iso: '' };
+    var resumeUrl = inLMS ? '' : CRShared.resume.build(localStorage.getItem(CONFIG.storageKey) || '{}');
+    CRShared.timer.flush();
+    var partASeconds = CRShared.timer.sum(state.pageTimes, function (p) { return p <= CONFIG.partALastPage; });
+    var partBSeconds = CRShared.timer.sum(state.pageTimes, function (p) { return p >= CONFIG.partBFirstPage; });
 
     // Resolve instructor from course selection
     var courseKey   = r[29] || 'Other';
     var instructor = INSTRUCTOR_MAP[courseKey] || INSTRUCTOR_MAP['Other'];
 
     var payload = {
+      submission_part:       part,
+      deployment:            inLMS ? 'lms' : 'web',
       learner_id:            learner_id,
       learner_name:          learner_name,
       student_email:         r[23] || '',
       mentor_email:          r[24] || '',
       instructor_email:      instructor.email,
       instructor_name:       instructor.name,
+      first_pass:            r[31] || '',
+      prior_course_section:  r[32] || '',
+      pass_number:           r[33] || (state.detectedPasses ? String(state.detectedPasses + (part === 'B' ? 0 : 1)) : '1'),
+      detected_passes:       String(state.detectedPasses || 0),
+      part_a_timestamp:      state.partATimestamp ? new Date(state.partATimestamp).toISOString() : '',
+      part_b_timestamp:      (part === 'B' && state.partBTimestamp) ? new Date(state.partBTimestamp).toISOString() : '',
+      part_b_unlocks_at:     unlock.text,
+      part_b_unlocks_iso:    unlock.iso,
+      resume_url:            resumeUrl,
+      page_times:            JSON.stringify(state.pageTimes),
+      part_a_seconds:        String(partASeconds),
+      part_b_seconds:        String(partBSeconds),
       opening_response:      r[0]  || '',
       rank_csksa:            r[1]  || '',
       rank_core:             r[2]  || '',
@@ -543,37 +744,7 @@
       course_other:          r[30] || ''
     };
 
-    var frameName = 'qualtrics_frame_' + Date.now();
-    var iframe = document.createElement('iframe');
-    iframe.name = frameName;
-    iframe.style.cssText =
-      'position:absolute;width:1px;height:1px;border:0;visibility:hidden;';
-    document.body.appendChild(iframe);
-
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = CONFIG.qualtricsUrl;
-    form.target = frameName;
-    form.acceptCharset = 'UTF-8';
-    form.style.display = 'none';
-
-    for (var key in payload) {
-      if (payload.hasOwnProperty(key)) {
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = String(payload[key]);
-        form.appendChild(input);
-      }
-    }
-
-    document.body.appendChild(form);
-    form.submit();
-
-    setTimeout(function () {
-      if (form.parentNode) form.parentNode.removeChild(form);
-      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-    }, 15000);
+    CRShared.qualtricsPost(CONFIG.qualtricsUrl, payload, CONFIG.postKeepMs);
   }
 
   // ============================================================
@@ -591,6 +762,8 @@
     }
 
     if (!state.partATimestamp) { state.partATimestamp = Date.now(); }
+    var ua = document.getElementById('unlock-at');
+    if (ua) ua.textContent = CRShared.formatUnlock(state.partATimestamp + CONFIG.timerDuration).text;
 
     var elapsed = Date.now() - state.partATimestamp;
     if (elapsed >= CONFIG.timerDuration) {
@@ -602,13 +775,14 @@
     } else {
       locked.classList.remove('hidden');
       unlocked.classList.add('hidden');
-      startCountdown(CONFIG.timerDuration - elapsed);
+      startCountdown();
     }
   }
 
-  function startCountdown(remaining) {
+  function startCountdown() {
     if (state.timerInterval) clearInterval(state.timerInterval);
     function update() {
+      var remaining = (state.partATimestamp + CONFIG.timerDuration) - Date.now();   // from the clock: no drift in background tabs
       if (remaining <= 0) {
         clearInterval(state.timerInterval);
         state.partBUnlocked = true;
@@ -622,7 +796,6 @@
       var s = Math.floor((remaining % 60000) / 1000);
       document.getElementById('countdown').textContent =
         pad(h) + ':' + pad(m) + ':' + pad(s);
-      remaining -= 1000;
     }
     update();
     state.timerInterval = setInterval(update, 1000);
@@ -996,6 +1169,11 @@
       var courseName = courseEntry ? courseEntry.display : r[29];
       demo += 'Course: ' + courseName + (r[30] ? ' (' + r[30] + ')' : '') + '\n';
     }
+    if (r[34]) demo = 'Name: ' + r[34] + '\n' + demo;
+    if (r[31] === 'no') {
+      var prior = INSTRUCTOR_MAP[r[32]];
+      demo += 'CR Path pass: ' + (r[33] || '2') + (r[32] ? ' (last walked in ' + (prior ? prior.display : r[32]) + ')' : '') + '\n';
+    } else if (r[31] === 'yes') { demo += 'CR Path pass: 1 (first time)\n'; }
     set('review-demographics', demo || '[No demographics entered]');
   }
 
@@ -1030,6 +1208,7 @@
     }
     document.getElementById('part-b-date').textContent =
       state.partBTimestamp ? new Date(state.partBTimestamp).toLocaleDateString() : '--';
+    document.querySelectorAll('.pass-done-n').forEach(function (el) { el.textContent = String(state.detectedPasses || 1); });
   }
 
   function set(id, val) {
@@ -1054,7 +1233,13 @@
     state.overrideUsed       = false;
     state.partBSubmittedOnce = false;
     state.partBTimestamp     = null;
+    state.partAPosted        = false;
+    state.detectedPasses     = 0;
+    state.lastPass           = null;
+    state.pageTimes          = {};
     state.responses          = {};
+    document.querySelectorAll('.prev-answer').forEach(function (el) { el.parentNode.removeChild(el); });
+    document.body.classList.remove('mode-return');
     document.querySelectorAll(
       '.scorm-input, .scorm-input-short, .scorm-select'
     ).forEach(function (el) { el.value = ''; });
@@ -1074,7 +1259,19 @@
   // INITIALIZATION
   // ============================================================
   function init() {
+    if (CONFIG.demo) {
+      SCORM = CRShared.demoSCORM();                       // nothing persists, nothing is sent
+      state.partBUnlocked = true;                         // gate open; all pages walkable
+      document.body.classList.add('demo');
+      if (!document.getElementById('demo-banner')) CRShared.banner('DEMO \u2014 nothing you type here is saved or sent. The 24-hour gate is open.');
+      /* Demo layer hook: show a "last pass" above the fresh fields (supervisor walkthrough). */
+      window.demoSetLastPass = function (responses, ts) {
+        state.lastPass = responses ? { ts: ts || (Date.now() - 63072000000), responses: responses } : null;
+        renderPreviousAnswers();
+      };
+    }
     SCORM.init();
+    document.body.classList.toggle('in-lms', CRShared.isLMS());
     loadState();
     bindNavigation();
     bindTabs();
@@ -1083,9 +1280,14 @@
     buildCourseSearch();
     bindAutoSave();
     bindNaceTooltips();
+    bindPassChoice();
+    bindEmailMirror();
+    renderPreviousAnswers();
+    applyMode();
+    if (!CONFIG.demo) CRShared.attachDictation('textarea.scorm-input');
 
-    if (state.partBSubmittedOnce && state.currentPage === CONFIG.totalPages) {
-      goToPage(CONFIG.partBFirstPage);
+    if (state.partBSubmittedOnce && state.partASubmitted) {
+      goToPage(1);                                        // finished pass: page 1 offers the next pass or a review
     } else {
       goToPage(state.currentPage);
     }
