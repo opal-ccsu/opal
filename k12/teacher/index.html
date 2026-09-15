@@ -188,7 +188,7 @@
     <button class="skill" type="button" data-name="critical thinking">Figuring out a problem <small>Critical Thinking</small></button>
     <button class="skill" type="button" data-name="professionalism">Showing up and doing it right <small>Professionalism</small></button>
     <button class="skill" type="button" data-name="leadership">Getting people to move together <small>Leadership</small></button>
-    <button class="skill" type="button" data-name="technology">Using tech, and AI, well and honestly <small>Technology</small></button>
+    <button class="skill" type="button" data-name="technology">Using tech, and AI, well and with integrity <small>Technology</small></button>
     <button class="skill" type="button" data-name="equity and inclusion">Making room for people not like you <small>Equity &amp; Inclusion</small></button>
     <button class="skill" type="button" data-name="career and self-development">Knowing yourself and where you're going <small>Career &amp; Self-Development</small></button>
   </div>
@@ -328,7 +328,9 @@
     window.scrollTo({top:0,behavior:'smooth'});
   }
   var req={0:['q0'],2:['k1'],3:['q2'],4:['skills','q5k'],5:['q6'],7:['q8']};
+  function reviewing(){ return !!(window.CRFeedback && window.CRFeedback.isOn && window.CRFeedback.isOn()); }
   function ok(i){
+    if(reviewing()) return true;            // feedback bar up: reviewers page freely, no gates
     var list=req[i]||[], good=true;
     list.forEach(function(id){
       if(id==='skills'){ if(!picked.length){$('#e5a').classList.add('show');good=false} }
@@ -357,7 +359,7 @@ window.CRFEEDBACK = {
 </script>
 <script>
 /*
- * crpath-feedback.js  v1.2 (2026-09-13) -- hidden by default; three ways to toggle; unsaved-work guard
+ * crpath-feedback.js  v1.3 (2026-09-14) -- bilingual pages: a button holding <span lang> children edits its visible span
  *
  * The bar is OFF unless one of these is true, so the same file serves a clean demo and a
  * feedback session with no second copy to keep in sync:
@@ -394,7 +396,7 @@ window.CRFEEDBACK = {
   var EXCL = cfg.exclude || '';
   var STORE_KEY  = 'crfeedback:' + (location.pathname || '') + ':' + NAME;
   var ENABLE_KEY = 'crfeedback:on:' + (location.pathname || '') + ':' + NAME;
-  var VERSION = '1.2';
+  var VERSION = '1.3';
 
   // ---------- state ----------
   var state = { session: '', edits: {}, notes: [], editing: false, flagging: false, saved: true };
@@ -561,8 +563,13 @@ window.CRFEEDBACK = {
       if (cand && editables().indexOf(cand) !== -1) { e.preventDefault(); e.stopPropagation(); setFlag(cand); }
       return;
     }
-    if (state.editing && ed) { e.stopPropagation(); if (ed.closest('label')) e.preventDefault(); if (ed.tagName === 'BUTTON') { e.preventDefault(); promptEdit(ed); } }
+    if (state.editing && ed) { e.stopPropagation(); if (ed.closest('label')) e.preventDefault(); if (ed.tagName === 'BUTTON') { e.preventDefault(); promptEdit(visibleLangSpan(ed) || ed); } }
   }, true);
+  function visibleLangSpan(el) {
+    var spans = el.querySelectorAll('span[lang]');
+    for (var i = 0; i < spans.length; i++) { if (getComputedStyle(spans[i]).display !== 'none') return spans[i]; }
+    return null;
+  }
   function promptEdit(el) {
     var o = ensureOrig(el), cur = norm(el.textContent);
     var v = window.prompt('Button text:', cur); if (v === null) return;
